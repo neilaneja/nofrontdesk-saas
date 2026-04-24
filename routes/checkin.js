@@ -1,6 +1,6 @@
 const express = require('express');
 const db = require('../lib/db');
-const { getGuestyToken, searchReservations, buildCheckInFormUrl } = require('../lib/guesty');
+const { createAdapter } = require('../lib/pms');
 
 const router = express.Router();
 
@@ -60,6 +60,7 @@ router.get('/api/property/:accountSlug/:propertySlug', async (req, res) => {
 
 // âââââââââââââââââââââââââââââââââââââââââââââ
 // POST /api/lookup â Reservation lookup (public)
+// Uses the PMS adapter pattern to support multiple PMS platforms
 // âââââââââââââââââââââââââââââââââââââââââââââ
 router.post('/api/lookup', async (req, res) => {
   const { lastName, accountSlug, propertySlug, confirmationCode } = req.body;
@@ -69,7 +70,7 @@ router.post('/api/lookup', async (req, res) => {
   }
 
   try {
-    // Get property and account credentials
+    // Get property and account info
     const propResult = await db.query(
       `SELECT p.*, a.id as account_id, a.slug as account_slug
        FROM properties p
@@ -84,9 +85,9 @@ router.post('/api/lookup', async (req, res) => {
 
     const property = propResult.rows[0];
 
-    // Get Guesty credentials for this account
+    // Get PMS credentials for this account
     const credResult = await db.query(
-      'SELECT guesty_client_id, guesty_client_secret FROM api_credentials WHERE account_id = $1',
+      `SELECT pms_type, credentials FROM api_credentials WHERE account_id = $1`,
       [property.account_id]
     );
 
@@ -97,11 +98,17 @@ router.post('/api/lookup', async (req, res) => {
       });
     }
 
-    const creds = credResult.rows[0];
+    const { pms_type, credentials } = credResult.rows[0];
 
-    // Get token and search reservations using this account's credentials
-    const token = await getGuestyToken(property.account_id, creds.guesty_client_id, creds.guesty_client_secret);
-    let results = await searchReservations(token, lastName);
+    // Create the appropriate PMS adapter
+    const pmsCredentials = {
+      ...credentials,
+      accountId: property.account_id,
+    };
+    const adapter = createAdapter(pms_type, pmsCredentials);
+
+    // Search reservations via the PMS adapter
+    let results = await adapter.searchReservations(lastName);
 
     // Log the check-in attempt
     const logResult = results.length > 0 ? (results.length === 1 ? 'found' : 'multiple') : 'not_found';
@@ -120,20 +127,15 @@ router.post('/api/lookup', async (req, res) => {
     // Handle confirmation code verification if enabled
     if (property.require_confirmation_code && results.length > 0) {
       if (!confirmationCode) {
-        // Confirmation code is required but not provided - tell frontend to show code input
         return res.json({
           status: 'needsConfirmation',
           message: 'Please enter your confirmation code to proceed.',
         });
       }
 
-      // Verify confirmation code against reservation(s)
       const confirmationCodeUpper = confirmationCode.toUpperCase();
       const matchingReservations = results.filter(reservation => {
-        if (!reservation.confirmationCode) {
-          return false;
-        }
-        // Check if last 4 characters of Guesty confirmation code match input
+        if (!reservation.confirmationCode) return false;
         const last4 = reservation.confirmationCode.slice(-4).toUpperCase();
         return last4 === confirmationCodeUpper;
       });
@@ -145,20 +147,26 @@ router.post('/api/lookup', async (req, res) => {
         });
       }
 
-      // Filter results to only matching reservations
       results = matchingReservations;
     }
 
+    // Build check-in URLs
+    const propertyConfig = {
+      guestyGuestAppName: property.guesty_guest_app_name || '',
+      pmsType: pms_type,
+    };
+
     if (results.length === 1) {
+      const r = results[0];
       return res.json({
         status: 'found',
         reservation: {
-          id: results[0]._id,
-          guestFirstName: results[0].guest?.firstName || '',
-          checkIn: results[0].checkInDateLocalized || results[0].checkIn,
-          checkOut: results[0].checkOutDateLocalized || results[0].checkOut,
-          listingName: results[0].listing?.title || '',
-          checkInFormUrl: buildCheckInFormUrl(results[0], property.guesty_guest_app_name),
+          id: r.id,
+          guestFirstName: r.guest.firstName,
+          checkIn: r.checkIn,
+          checkOut: r.checkOut,
+          listingName: r.listingName,
+          checkInFormUrl: adapter.buildCheckInUrl(r, propertyConfig) || '',
         },
       });
     }
@@ -168,20 +176,19 @@ router.post('/api/lookup', async (req, res) => {
       status: 'multiple',
       message: 'We found multiple reservations. Please select yours.',
       reservations: results.map(r => ({
-        id: r._id,
-        guestFirstName: r.guest?.firstName || '',
-        guestLastName: r.guest?.lastName || '',
-        checkIn: r.checkInDateLocalized || r.checkIn,
-        checkOut: r.checkOutDateLocalized || r.checkOut,
-        listingName: r.listing?.title || '',
-        checkInFormUrl: buildCheckInFormUrl(r, property.guesty_guest_app_name),
+        id: r.id,
+        guestFirstName: r.guest.firstName,
+        guestLastName: r.guest.lastName,
+        checkIn: r.checkIn,
+        checkOut: r.checkOut,
+        listingName: r.listingName,
+        checkInFormUrl: adapter.buildCheckInUrl(r, propertyConfig) || '',
       })),
     });
 
   } catch (err) {
     console.error('Reservation lookup error:', err.message);
 
-    // Log the error
     db.query(
       'INSERT INTO checkin_logs (account_id, guest_last_name, result) VALUES ((SELECT a.id FROM accounts a WHERE a.slug = $1), $2, $3)',
       [accountSlug, lastName, 'error']
@@ -192,6 +199,38 @@ router.post('/api/lookup', async (req, res) => {
       message: 'Something went wrong. Please try again or call us for help.',
     });
   }
+});
+
+// âââââââââââââââââââââââââââââââââââââââââââââ
+// GET /api/pms-types â List supported PMS platforms (public)
+// Used by dashboard to show PMS selection
+// âââââââââââââââââââââââââââââââââââââââââââââ
+router.get('/api/pms-types', (req, res) => {
+  const { getPMSList } = require('../lib/pms');
+  res.json(getPMSList());
+});
+
+// âââââââââââââââââââââââââââââââââââââââââââââ
+// GET /embed/:accountSlug/:propertySlug â Embeddable check-in widget
+// Serves a lightweight version of the check-in page for iframe embedding
+// âââââââââââââââââââââââââââââââââââââââââââââ
+router.get('/embed/:accountSlug/:propertySlug', async (req, res) => {
+  const { accountSlug, propertySlug } = req.params;
+
+  const result = await db.query(
+    `SELECT p.*, a.slug as account_slug
+     FROM properties p
+     JOIN accounts a ON p.account_id = a.id
+     WHERE a.slug = $1 AND p.slug = $2`,
+    [accountSlug, propertySlug]
+  );
+
+  if (result.rows.length === 0) {
+    return res.status(404).send(notFoundPage());
+  }
+
+  // Serve the same check-in HTML - it adapts when loaded in an iframe
+  res.sendFile(require('path').join(__dirname, '..', 'public', 'checkin.html'));
 });
 
 function notFoundPage() {
