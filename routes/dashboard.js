@@ -418,6 +418,7 @@ function dashboardLayout(account, content) {
   <a href="/dashboard" class="logo">No<span>FrontDesk</span></a>
   <div class="topnav-right">
     <span class="company-badge">${esc(account.company_name)}</span>
+    <a href="/dashboard/billing">Billing</a>
     <a href="/dashboard/credentials">Guesty API</a>
     <a href="/logout">Log out</a>
   </div>

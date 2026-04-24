@@ -8,6 +8,12 @@ const db = require('./lib/db');
 const app = express();
 
 // ─────────────────────────────────────────────
+// Stripe webhook route (needs raw body — must be before other body parsers)
+// ─────────────────────────────────────────────
+const { handleStripeWebhook } = require('./routes/billing');
+app.post('/webhooks/stripe', express.raw({ type: 'application/json' }), handleStripeWebhook);
+
+// ─────────────────────────────────────────────
 // Middleware
 // ─────────────────────────────────────────────
 app.use(express.json());
@@ -38,10 +44,14 @@ if (process.env.NODE_ENV === 'production') {
 const authRoutes = require('./routes/auth');
 const dashboardRoutes = require('./routes/dashboard');
 const checkinRoutes = require('./routes/checkin');
+const { router: billingRoutes } = require('./routes/billing');
+const passwordResetRoutes = require('./routes/password-reset');
 
 app.use('/', authRoutes);
 app.use('/', dashboardRoutes);
 app.use('/', checkinRoutes);
+app.use('/', billingRoutes);
+app.use('/', passwordResetRoutes);
 
 // ─────────────────────────────────────────────
 // Root route

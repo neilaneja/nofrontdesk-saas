@@ -1,7 +1,7 @@
 {
   "name": "nofrontdesk",
   "version": "2.0.0",
-  "description": "NoFrontDesk — Contactless check-in SaaS for vacation rentals",
+  "description": "NoFrontDesk \u2014 Contactless check-in SaaS for vacation rentals",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -16,7 +16,9 @@
     "bcryptjs": "^2.4.3",
     "axios": "^1.6.0",
     "dotenv": "^16.3.1",
-    "node-cache": "^5.1.2"
+    "node-cache": "^5.1.2",
+    "stripe": "^14.0.0",
+    "nodemailer": "^6.9.0"
   },
   "engines": {
     "node": ">=18.0.0"

@@ -78,3 +78,15 @@ CREATE INDEX IF NOT EXISTS idx_checkin_logs_property ON checkin_logs(property_id
 CREATE INDEX IF NOT EXISTS idx_checkin_logs_created ON checkin_logs(created_at);
 CREATE INDEX IF NOT EXISTS idx_properties_account ON properties(account_id);
 CREATE INDEX IF NOT EXISTS idx_accounts_slug ON accounts(slug);
+
+-- ─────────────────────────────────────────────
+-- Password reset tokens
+-- ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS password_resets (
+  id SERIAL PRIMARY KEY,
+  account_id INT REFERENCES accounts(id) ON DELETE CASCADE UNIQUE,
+  token VARCHAR(255) NOT NULL,
+  expires_at TIMESTAMP NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_password_resets_token ON password_resets(token);

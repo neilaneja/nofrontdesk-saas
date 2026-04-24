@@ -197,6 +197,7 @@ function loginPage(error = '') {
       </div>
       <button type="submit" class="btn">Log In</button>
     </form>
+    <div class="switch" style="margin-top:12px;"><a href="/forgot-password">Forgot your password?</a></div>
     <div class="switch">Don't have an account? <a href="/register">Sign up free</a></div>
   `);
 }
