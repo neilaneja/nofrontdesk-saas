@@ -4,10 +4,10 @@ const { getGuestyToken, searchReservations, buildCheckInFormUrl } = require('../
 
 const router = express.Router();
 
-// ─────────────────────────────────────────────
-// GET /c/:accountSlug/:propertySlug — Guest check-in page
+// âââââââââââââââââââââââââââââââââââââââââââââ
+// GET /c/:accountSlug/:propertySlug â Guest check-in page
 // This is the public-facing URL that guests access via QR code
-// ─────────────────────────────────────────────
+// âââââââââââââââââââââââââââââââââââââââââââââ
 router.get('/c/:accountSlug/:propertySlug', async (req, res) => {
   const { accountSlug, propertySlug } = req.params;
 
@@ -23,19 +23,19 @@ router.get('/c/:accountSlug/:propertySlug', async (req, res) => {
     return res.status(404).send(notFoundPage());
   }
 
-  // Serve the check-in HTML — it will fetch branding from the API
+  // Serve the check-in HTML â it will fetch branding from the API
   res.sendFile(require('path').join(__dirname, '..', 'public', 'checkin.html'));
 });
 
-// ─────────────────────────────────────────────
-// GET /api/property/:accountSlug/:propertySlug — Property config (public)
+// âââââââââââââââââââââââââââââââââââââââââââââ
+// GET /api/property/:accountSlug/:propertySlug â Property config (public)
 // Returns branding info for the check-in page
-// ─────────────────────────────────────────────
+// âââââââââââââââââââââââââââââââââââââââââââââ
 router.get('/api/property/:accountSlug/:propertySlug', async (req, res) => {
   const { accountSlug, propertySlug } = req.params;
 
   const result = await db.query(
-    `SELECT p.name, p.welcome_message, p.logo_url, p.brand_color, p.accent_color, p.fallback_phone
+    `SELECT p.name, p.welcome_message, p.require_confirmation_code, p.logo_url, p.brand_color, p.accent_color, p.fallback_phone
      FROM properties p
      JOIN accounts a ON p.account_id = a.id
      WHERE a.slug = $1 AND p.slug = $2`,
@@ -49,6 +49,7 @@ router.get('/api/property/:accountSlug/:propertySlug', async (req, res) => {
   const p = result.rows[0];
   res.json({
     name: p.name,
+    requireConfirmationCode: p.require_confirmation_code,
     welcomeMessage: p.welcome_message,
     logoUrl: p.logo_url,
     brandColor: p.brand_color,
@@ -57,11 +58,11 @@ router.get('/api/property/:accountSlug/:propertySlug', async (req, res) => {
   });
 });
 
-// ─────────────────────────────────────────────
-// POST /api/lookup — Reservation lookup (public)
-// ─────────────────────────────────────────────
+// âââââââââââââââââââââââââââââââââââââââââââââ
+// POST /api/lookup â Reservation lookup (public)
+// âââââââââââââââââââââââââââââââââââââââââââââ
 router.post('/api/lookup', async (req, res) => {
-  const { lastName, accountSlug, propertySlug } = req.body;
+  const { lastName, accountSlug, propertySlug, confirmationCode } = req.body;
 
   if (!lastName || !accountSlug || !propertySlug) {
     return res.status(400).json({ error: 'Missing required fields.' });
@@ -100,7 +101,7 @@ router.post('/api/lookup', async (req, res) => {
 
     // Get token and search reservations using this account's credentials
     const token = await getGuestyToken(property.account_id, creds.guesty_client_id, creds.guesty_client_secret);
-    const results = await searchReservations(token, lastName);
+    let results = await searchReservations(token, lastName);
 
     // Log the check-in attempt
     const logResult = results.length > 0 ? (results.length === 1 ? 'found' : 'multiple') : 'not_found';
@@ -114,6 +115,38 @@ router.post('/api/lookup', async (req, res) => {
         status: 'not_found',
         message: 'No reservation found. Please check the spelling of your last name and try again.',
       });
+    }
+
+    // Handle confirmation code verification if enabled
+    if (property.require_confirmation_code && results.length > 0) {
+      if (!confirmationCode) {
+        // Confirmation code is required but not provided - tell frontend to show code input
+        return res.json({
+          status: 'needsConfirmation',
+          message: 'Please enter your confirmation code to proceed.',
+        });
+      }
+
+      // Verify confirmation code against reservation(s)
+      const confirmationCodeUpper = confirmationCode.toUpperCase();
+      const matchingReservations = results.filter(reservation => {
+        if (!reservation.confirmationCode) {
+          return false;
+        }
+        // Check if last 4 characters of Guesty confirmation code match input
+        const last4 = reservation.confirmationCode.slice(-4).toUpperCase();
+        return last4 === confirmationCodeUpper;
+      });
+
+      if (matchingReservations.length === 0) {
+        return res.json({
+          status: 'error',
+          message: 'Invalid confirmation code. Please check and try again.',
+        });
+      }
+
+      // Filter results to only matching reservations
+      results = matchingReservations;
     }
 
     if (results.length === 1) {
