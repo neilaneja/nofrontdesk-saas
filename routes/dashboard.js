@@ -7,24 +7,24 @@ const router = express.Router();
 // All dashboard routes require login
 router.use(requireLogin);
 
-// ─────────────────────────────────────────────
+// âââââââââââââââââââââââââââââââââââââââââââââ
 // Helper: slugify a property name
-// ─────────────────────────────────────────────
+// âââââââââââââââââââââââââââââââââââââââââââââ
 function slugify(text) {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').substring(0, 80);
 }
 
-// ─────────────────────────────────────────────
+// âââââââââââââââââââââââââââââââââââââââââââââ
 // Helper: escape HTML to prevent XSS
-// ─────────────────────────────────────────────
+// âââââââââââââââââââââââââââââââââââââââââââââ
 function esc(str) {
   if (!str) return '';
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-// ─────────────────────────────────────────────
-// GET /dashboard — Main dashboard
-// ─────────────────────────────────────────────
+// âââââââââââââââââââââââââââââââââââââââââââââ
+// GET /dashboard â Main dashboard
+// âââââââââââââââââââââââââââââââââââââââââââââ
 router.get('/dashboard', async (req, res) => {
   const accountId = req.session.accountId;
 
@@ -110,18 +110,18 @@ router.get('/dashboard', async (req, res) => {
   `));
 });
 
-// ─────────────────────────────────────────────
-// GET /dashboard/credentials — Guesty API setup
-// ─────────────────────────────────────────────
+// âââââââââââââââââââââââââââââââââââââââââââââ
+// GET /dashboard/credentials â Guesty API setup
+// âââââââââââââââââââââââââââââââââââââââââââââ
 router.get('/dashboard/credentials', async (req, res) => {
   const cred = await db.query('SELECT guesty_client_id FROM api_credentials WHERE account_id = $1', [req.session.accountId]);
   const existing = cred.rows[0];
 
   res.send(dashboardLayout({ company_name: req.session.companyName }, `
     <h2>Guesty API Credentials</h2>
-    <p class="section-desc">Connect your Guesty account so NoFrontDesk can look up guest reservations. You can find these in your Guesty Dashboard under Marketplace → Open API.</p>
+    <p class="section-desc">Connect your Guesty account so NoFrontDesk can look up guest reservations. You can find these in your Guesty Dashboard under Marketplace â Open API.</p>
 
-    ${existing ? `<div class="success-msg">Connected — Client ID: ${esc(existing.guesty_client_id.substring(0, 8))}...</div>` : ''}
+    ${existing ? `<div class="success-msg">Connected â Client ID: ${esc(existing.guesty_client_id.substring(0, 8))}...</div>` : ''}
 
     <form method="POST" action="/dashboard/credentials" class="form-card">
       <div class="form-group">
@@ -130,7 +130,7 @@ router.get('/dashboard/credentials', async (req, res) => {
       </div>
       <div class="form-group">
         <label>Guesty Client Secret</label>
-        <input type="password" name="clientSecret" placeholder="${existing ? '••••••••••• (leave blank to keep current)' : 'Paste your client secret'}" ${existing ? '' : 'required'}>
+        <input type="password" name="clientSecret" placeholder="${existing ? 'â¢â¢â¢â¢â¢â¢â¢â¢â¢â¢â¢ (leave blank to keep current)' : 'Paste your client secret'}" ${existing ? '' : 'required'}>
       </div>
       <button type="submit" class="btn">${existing ? 'Update Credentials' : 'Connect Guesty'}</button>
     </form>
@@ -138,15 +138,15 @@ router.get('/dashboard/credentials', async (req, res) => {
     <div class="help-text">
       <strong>Where to find these:</strong><br>
       1. Log into your <a href="https://app.guesty.com" target="_blank">Guesty Dashboard</a><br>
-      2. Go to Marketplace → Open API<br>
+      2. Go to Marketplace â Open API<br>
       3. Create or copy your Client ID and Client Secret
     </div>
   `));
 });
 
-// ─────────────────────────────────────────────
-// POST /dashboard/credentials — Save & verify Guesty creds
-// ─────────────────────────────────────────────
+// âââââââââââââââââââââââââââââââââââââââââââââ
+// POST /dashboard/credentials â Save & verify Guesty creds
+// âââââââââââââââââââââââââââââââââââââââââââââ
 router.post('/dashboard/credentials', async (req, res) => {
   const { clientId, clientSecret } = req.body;
   const accountId = req.session.accountId;
@@ -167,7 +167,7 @@ router.post('/dashboard/credentials', async (req, res) => {
         console.error('Credential verification failed:', testErr.message);
         return res.send(dashboardLayout({ company_name: req.session.companyName }, `
           <h2>Guesty API Credentials</h2>
-          <div class="error-msg">Connection failed — please double-check your Client ID and Client Secret. Guesty returned: ${esc(testErr.response?.data?.error || testErr.message)}</div>
+          <div class="error-msg">Connection failed â please double-check your Client ID and Client Secret. Guesty returned: ${esc(testErr.response?.data?.error || testErr.message)}</div>
           <form method="POST" action="/dashboard/credentials" class="form-card">
             <div class="form-group">
               <label>Guesty Client ID</label>
@@ -182,7 +182,7 @@ router.post('/dashboard/credentials', async (req, res) => {
           <div class="help-text">
             <strong>Where to find these:</strong><br>
             1. Log into your <a href="https://app.guesty.com" target="_blank">Guesty Dashboard</a><br>
-            2. Go to Marketplace → Open API<br>
+            2. Go to Marketplace â Open API<br>
             3. Create or copy your Client ID and Client Secret
           </div>
         `));
@@ -221,19 +221,20 @@ router.post('/dashboard/credentials', async (req, res) => {
   }
 });
 
-// ─────────────────────────────────────────────
-// GET /dashboard/properties/add — Add property form
-// ─────────────────────────────────────────────
+// âââââââââââââââââââââââââââââââââââââââââââââ
+// GET /dashboard/properties/add â Add property form
+// âââââââââââââââââââââââââââââââââââââââââââââ
 router.get('/dashboard/properties/add', (req, res) => {
   res.send(dashboardLayout({ company_name: req.session.companyName }, propertyForm('Add Property', '/dashboard/properties/add', {})));
 });
 
-// ─────────────────────────────────────────────
-// POST /dashboard/properties/add — Create property
-// ─────────────────────────────────────────────
+// âââââââââââââââââââââââââââââââââââââââââââââ
+// POST /dashboard/properties/add â Create property
+// âââââââââââââââââââââââââââââââââââââââââââââ
 router.post('/dashboard/properties/add', async (req, res) => {
   const { name, welcomeMessage, brandColor, accentColor, fallbackPhone, guestyGuestAppName } = req.body;
   const accountId = req.session.accountId;
+  const requireConfirmationCode = !!req.body.requireConfirmationCode;
 
   if (!name) {
     return res.send(dashboardLayout({ company_name: req.session.companyName },
@@ -251,9 +252,9 @@ router.post('/dashboard/properties/add', async (req, res) => {
     }
 
     await db.query(
-      `INSERT INTO properties (account_id, name, slug, welcome_message, brand_color, accent_color, fallback_phone, guesty_guest_app_name)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-      [accountId, name.trim(), slug, welcomeMessage || 'Welcome!', brandColor || '#2C3E50', accentColor || '#E67E22', fallbackPhone || '', guestyGuestAppName || '']
+      `INSERT INTO properties (account_id, name, slug, welcome_message, brand_color, accent_color, fallback_phone, guesty_guest_app_name, require_confirmation_code)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [accountId, name.trim(), slug, welcomeMessage || 'Welcome!', brandColor || '#2C3E50', accentColor || '#E67E22', fallbackPhone || '', guestyGuestAppName || '', requireConfirmationCode]
     );
 
     res.redirect('/dashboard');
@@ -264,9 +265,9 @@ router.post('/dashboard/properties/add', async (req, res) => {
   }
 });
 
-// ─────────────────────────────────────────────
-// GET /dashboard/properties/:id/edit — Edit property
-// ─────────────────────────────────────────────
+// âââââââââââââââââââââââââââââââââââââââââââââ
+// GET /dashboard/properties/:id/edit â Edit property
+// âââââââââââââââââââââââââââââââââââââââââââââ
 router.get('/dashboard/properties/:id/edit', async (req, res) => {
   const prop = await db.query('SELECT * FROM properties WHERE id = $1 AND account_id = $2', [req.params.id, req.session.accountId]);
   if (prop.rows.length === 0) return res.redirect('/dashboard');
@@ -280,16 +281,18 @@ router.get('/dashboard/properties/:id/edit', async (req, res) => {
       accentColor: p.accent_color,
       fallbackPhone: p.fallback_phone,
       guestyGuestAppName: p.guesty_guest_app_name,
+      requireConfirmationCode: p.require_confirmation_code,
     })
   ));
 });
 
-// ─────────────────────────────────────────────
-// POST /dashboard/properties/:id/edit — Update property
-// ─────────────────────────────────────────────
+// âââââââââââââââââââââââââââââââââââââââââââââ
+// POST /dashboard/properties/:id/edit â Update property
+// âââââââââââââââââââââââââââââââââââââââââââââ
 router.post('/dashboard/properties/:id/edit', async (req, res) => {
   const { name, welcomeMessage, brandColor, accentColor, fallbackPhone, guestyGuestAppName } = req.body;
   const accountId = req.session.accountId;
+  const requireConfirmationCode = !!req.body.requireConfirmationCode;
 
   if (!name) {
     return res.send(dashboardLayout({ company_name: req.session.companyName },
@@ -298,9 +301,9 @@ router.post('/dashboard/properties/:id/edit', async (req, res) => {
 
   try {
     await db.query(
-      `UPDATE properties SET name = $1, welcome_message = $2, brand_color = $3, accent_color = $4, fallback_phone = $5, guesty_guest_app_name = $6, updated_at = NOW()
-       WHERE id = $7 AND account_id = $8`,
-      [name.trim(), welcomeMessage || 'Welcome!', brandColor || '#2C3E50', accentColor || '#E67E22', fallbackPhone || '', guestyGuestAppName || '', req.params.id, accountId]
+      `UPDATE properties SET name = $1, welcome_message = $2, brand_color = $3, accent_color = $4, fallback_phone = $5, guesty_guest_app_name = $6, require_confirmation_code = $7, updated_at = NOW()
+       WHERE id = $8 AND account_id = $9`,
+      [name.trim(), welcomeMessage || 'Welcome!', brandColor || '#2C3E50', accentColor || '#E67E22', fallbackPhone || '', guestyGuestAppName || '', requireConfirmationCode, req.params.id, accountId]
     );
     res.redirect('/dashboard');
   } catch (err) {
@@ -309,9 +312,9 @@ router.post('/dashboard/properties/:id/edit', async (req, res) => {
   }
 });
 
-// ─────────────────────────────────────────────
-// GET /dashboard/signage/:id — QR code sign
-// ─────────────────────────────────────────────
+// âââââââââââââââââââââââââââââââââââââââââââââ
+// GET /dashboard/signage/:id â QR code sign
+// âââââââââââââââââââââââââââââââââââââââââââââ
 router.get('/dashboard/signage/:id', async (req, res) => {
   const propRes = await db.query('SELECT p.*, a.slug as account_slug FROM properties p JOIN accounts a ON p.account_id = a.id WHERE p.id = $1 AND p.account_id = $2', [req.params.id, req.session.accountId]);
   if (propRes.rows.length === 0) return res.redirect('/dashboard');
@@ -323,16 +326,16 @@ router.get('/dashboard/signage/:id', async (req, res) => {
   res.send(signagePage(p, checkinUrl));
 });
 
-// ─────────────────────────────────────────────
+// âââââââââââââââââââââââââââââââââââââââââââââ
 // Page Templates
-// ─────────────────────────────────────────────
+// âââââââââââââââââââââââââââââââââââââââââââââ
 function dashboardLayout(account, content) {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard — NoFrontDesk</title>
+<title>Dashboard â NoFrontDesk</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8f9fc; color: #1a1a2e; }
@@ -460,9 +463,16 @@ function propertyForm(title, action, data, error = '') {
         <div class="hint">Shown if check-in system has an error</div>
       </div>
       <div class="form-group">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+          <input type="checkbox" name="requireConfirmationCode" value="1" ${data.requireConfirmationCode || data.require_confirmation_code ? 'checked' : ''} style="width:20px;height:20px;accent-color:#e94560;">
+          <span>Require Confirmation Code</span>
+        </label>
+        <div class="hint">When enabled, guests must enter the last 4 characters of their confirmation code after their last name is found.</div>
+      </div>
+      <div class="form-group">
         <label>Guesty Guest App Name</label>
         <input type="text" name="guestyGuestAppName" placeholder="e.g. west_end_flats" value="${esc(data.guestyGuestAppName || data.guesty_guest_app_name || '')}">
-        <div class="hint">The name of your Guesty Guest App (just the name, e.g. west_end_flats — not the full template). If you have multiple guest apps, separate with commas.</div>
+        <div class="hint">The name of your Guesty Guest App (just the name, e.g. west_end_flats â not the full template). If you have multiple guest apps, separate with commas.</div>
       </div>
       <button type="submit" class="btn">${title === 'Add Property' ? 'Add Property' : 'Save Changes'}</button>
       <a href="/dashboard" style="margin-left:16px;color:#718096;text-decoration:none;font-size:14px;">Cancel</a>
@@ -476,7 +486,7 @@ function signagePage(property, checkinUrl) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>QR Sign — ${esc(property.name)}</title>
+<title>QR Sign â ${esc(property.name)}</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
