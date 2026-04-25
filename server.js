@@ -39,6 +39,17 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // ─────────────────────────────────────────────
+// Root route — Landing page or dashboard redirect
+// (must be BEFORE dashboard routes which apply requireLogin middleware)
+// ─────────────────────────────────────────────
+app.get('/', (req, res) => {
+  if (req.session && req.session.accountId) {
+    return res.redirect('/dashboard');
+  }
+  res.send(landingPage());
+});
+
+// ─────────────────────────────────────────────
 // Routes
 // ─────────────────────────────────────────────
 const authRoutes = require('./routes/auth');
@@ -52,16 +63,6 @@ app.use('/', dashboardRoutes);
 app.use('/', checkinRoutes);
 app.use('/', billingRoutes);
 app.use('/', passwordResetRoutes);
-
-// ─────────────────────────────────────────────
-// Root route — Landing page or dashboard redirect
-// ─────────────────────────────────────────────
-app.get('/', (req, res) => {
-  if (req.session && req.session.accountId) {
-    return res.redirect('/dashboard');
-  }
-  res.send(landingPage());
-});
 
 // ─────────────────────────────────────────────
 // 404
