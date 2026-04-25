@@ -1,0 +1,1497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#2C3E50">
+  <title>Guest Check-In</title>
+  <style>
+    /* âââââââââââââââââââââââââââââââââââââââââââââ
+       CSS Variables â overridden by property config
+       âââââââââââââââââââââââââââââââââââââââââââââ */
+    :root {
+      --brand: #2C3E50;
+      --accent: #E67E22;
+      --bg: #F8F9FA;
+      --card: #FFFFFF;
+      --text: #1A1A1A;
+      --text-muted: #6C757D;
+      --error: #DC3545;
+      --success: #28A745;
+      --radius: 16px;
+      --border: #DEE2E6;
+    }
+
+    /* âââââââââââââââââââââââââââââââââââââââââââââ
+       Reset & Base
+       âââââââââââââââââââââââââââââââââââââââââââââ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; -webkit-text-size-adjust: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0;
+    }
+
+    /* âââââââââââââââââââââââââââââââââââââââââââââ
+       Layout
+       âââââââââââââââââââââââââââââââââââââââââââââ */
+    .container {
+      width: 100%;
+      max-width: 500px;
+      padding: 20px 16px 100px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* âââââââââââââââââââââââââââââââââââââââââââââ
+       Header / Reservation Info
+       âââââââââââââââââââââââââââââââââââââââââââââ */
+    .header {
+      width: 100%;
+      text-align: center;
+      padding: 24px 0 16px;
+    }
+    .header-logo {
+      width: 60px; height: 60px;
+      object-fit: contain;
+      border-radius: 10px;
+      margin-bottom: 12px;
+    }
+    .header-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--brand);
+    }
+    .header-subtitle {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .reservation-banner {
+      width: 100%;
+      background: var(--brand);
+      color: white;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      margin: 12px 0 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .reservation-banner .guest-name {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+    .reservation-banner .dates {
+      font-size: 0.85rem;
+      opacity: 0.85;
+      margin-top: 2px;
+    }
+    .reservation-banner .listing {
+      font-size: 0.8rem;
+      opacity: 0.7;
+      margin-top: 2px;
+    }
+
+    /* âââââââââââââââââââââââââââââââââââââââââââââ
+       Progress Steps
+       âââââââââââââââââââââââââââââââââââââââââââââ */
+    .progress-bar {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin-bottom: 24px;
+      padding: 0 4px;
+    }
+    .progress-step {
+      flex: 1;
+      text-align: center;
+      position: relative;
+    }
+    .progress-dot {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: var(--border);
+      border: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 4px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      transition: all 0.3s;
+    }
+    .progress-step.active .progress-dot {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+    .progress-step.completed .progress-dot {
+      background: var(--success);
+      border-color: var(--success);
+      color: white;
+    }
+    .progress-step .step-label {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .progress-step.active .step-label { color: var(--accent); font-weight: 600; }
+    .progress-step.completed .step-label { color: var(--success); }
+    .progress-line {
+      flex: 0 0 auto;
+      width: 24px; height: 2px;
+      background: var(--border);
+      margin: 0 -4px;
+      margin-bottom: 16px;
+      transition: background 0.3s;
+    }
+    .progress-line.filled { background: var(--success); }
+
+    /* âââââââââââââââââââââââââââââââââââââââââââââ
+       Form Sections (Steps)
+       âââââââââââââââââââââââââââââââââââââââââââââ */
+    .form-section {
+      display: none;
+      width: 100%;
+      animation: fadeIn 0.3s ease;
+    }
+    .form-section.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    .section-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      padding: 24px 20px;
+      width: 100%;
+      margin-bottom: 16px;
+    }
+    .section-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--brand);
+      margin-bottom: 4px;
+    }
+    .section-desc {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+      line-height: 1.4;
+    }
+
+    /* âââââââââââââââââââââââââââââââââââââââââââââ
+       Form Fields
+       âââââââââââââââââââââââââââââââââââââââââââââ */
+    .field-group { margin-bottom: 18px; }
+    .field-label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .field-label .required { color: var(--error); margin-left: 2px; }
+    .field-input {
+      width: 100%;
+      padding: 14px 16px;
+      font-size: 1rem;
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      background: var(--bg);
+      -webkit-appearance: none;
+    }
+    .field-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(230, 126, 34, 0.15);
+    }
+    .field-input.error { border-color: var(--error); }
+    .field-hint {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+    .field-error {
+      font-size: 0.8rem;
+      color: var(--error);
+      margin-top: 4px;
+      display: none;
+    }
+
+    select.field-input {
+      cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236C757D' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 36px;
+    }
+
+    textarea.field-input {
+      min-height: 100px;
+      resize: vertical;
+      font-family: inherit;
+    }
+
+    /* âââââââââââââââââââââââââââââââââââââââââââââ
+       File Upload
+       âââââââââââââââââââââââââââââââââââââââââââââ */
+    .upload-area {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 24px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      background: var(--bg);
+    }
+    .upload-area:hover, .upload-area.dragover {
+      border-color: var(--accent);
+      background: rgba(230, 126, 34, 0.05);
+    }
+    .upload-area.has-file {
+      border-color: var(--success);
+      background: rgba(40, 167, 69, 0.05);
+    }
+    .upload-icon {
+      width: 40px; height: 40px;
+      margin: 0 auto 8px;
+      fill: var(--text-muted);
+    }
+    .upload-text {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+    .upload-text strong { color: var(--accent); }
+    .upload-preview {
+      max-width: 100%;
+      max-height: 200px;
+      border-radius: 8px;
+      margin-top: 12px;
+      display: none;
+    }
+    .upload-filename {
+      font-size: 0.85rem;
+      color: var(--success);
+      margin-top: 8px;
+      display: none;
+    }
+    .upload-remove {
+      font-size: 0.8rem;
+      color: var(--error);
+      cursor: pointer;
+      margin-top: 4px;
+      display: none;
+      background: none;
+      border: none;
+      text-decoration: underline;
+    }
+    input[type="file"] { display: none; }
+
+    /* âââââââââââââââââââââââââââââââââââââââââââââ
+       Signature Pad
+       âââââââââââââââââââââââââââââââââââââââââââââ */
+    .signature-container {
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      background: white;
+      position: relative;
+    }
+    .signature-canvas {
+      width: 100%;
+      height: 180px;
+      display: block;
+      touch-action: none;
+    }
+    .signature-placeholder {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .signature-actions {
+      display: flex;
+      justify-content: flex-end;
+      padding: 8px 12px;
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+    }
+    .sig-clear-btn {
+      font-size: 0.85rem;
+      color: var(--error);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px 8px;
+    }
+
+    /* âââââââââââââââââââââââââââââââââââââââââââââ
+       House Rules / Agreement
+       âââââââââââââââââââââââââââââââââââââââââââââ */
+    .rules-container {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      max-height: 300px;
+      overflow-y: auto;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      color: var(--text);
+      margin-bottom: 16px;
+      white-space: pre-wrap;
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 12px 0;
+    }
+    .checkbox-group input[type="checkbox"] {
+      width: 22px;
+      height: 22px;
+      margin-top: 2px;
+      flex-shrink: 0;
+      accent-color: var(--accent);
+    }
+    .checkbox-group label {
+      font-size: 0.95rem;
+      color: var(--text);
+      cursor: pointer;
+      line-height: 1.4;
+    }
+
+    /* âââââââââââââââââââââââââââââââââââââââââââââ
+       Navigation Buttons
+       âââââââââââââââââââââââââââââââââââââââââââââ */
+    .nav-buttons {
+      display: flex;
+      gap: 12px;
+      width: 100%;
+      margin-top: 8px;
+    }
+    .btn {
+      flex: 1;
+      padding: 16px;
+      font-size: 1.05rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+    .btn-secondary {
+      background: var(--border);
+      color: var(--text);
+      flex: 0 0 auto;
+      padding: 16px 24px;
+    }
+    .btn-submit {
+      background: var(--success);
+      color: white;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 18px; height: 18px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* âââââââââââââââââââââââââââââââââââââââââââââ
+       Success Screen
+       âââââââââââââââââââââââââââââââââââââââââââââ */
+    .success-screen {
+      display: none;
+      text-align: center;
+      padding: 60px 24px;
+      width: 100%;
+    }
+    .success-screen.visible { display: block; }
+    .success-icon {
+      width: 80px; height: 80px;
+      margin: 0 auto 24px;
+      background: var(--success);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    @keyframes popIn { 0% { transform: scale(0); } 100% { transform: scale(1); } }
+    .success-icon svg { width: 40px; height: 40px; fill: white; }
+    .success-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .success-message {
+      font-size: 1rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+      max-width: 320px;
+      margin: 0 auto;
+    }
+
+    /* âââââââââââââââââââââââââââââââââââââââââââââ
+       Loading
+       âââââââââââââââââââââââââââââââââââââââââââââ */
+    .page-loader {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100dvh;
+    }
+    .page-loader .spinner {
+      width: 40px; height: 40px;
+      border-width: 4px;
+      border-color: var(--border);
+      border-top-color: var(--accent);
+    }
+
+    /* âââââââââââââââââââââââââââââââââââââââââââââ
+       Error State
+       âââââââââââââââââââââââââââââââââââââââââââââ */
+    .error-banner {
+      width: 100%;
+      background: #FFF5F5;
+      border: 1px solid #FFCDD2;
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-size: 0.9rem;
+      color: var(--error);
+      margin-bottom: 16px;
+      display: none;
+    }
+    .error-banner.visible { display: block; }
+  </style>
+</head>
+<body>
+
+  <!-- Loading -->
+  <div id="pageLoader" class="page-loader">
+    <div class="spinner"></div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="container" id="mainContent" style="display:none;">
+
+    <!-- Header -->
+    <div class="header">
+      <img id="headerLogo" class="header-logo" src="" alt="" style="display:none;">
+      <div class="header-title" id="headerTitle">Complete Your Check-In</div>
+      <div class="header-subtitle">Fill out the form below to check in to your stay.</div>
+    </div>
+
+    <!-- Reservation Banner -->
+    <div class="reservation-banner" id="resBanner">
+      <div>
+        <div class="guest-name" id="resGuestName"></div>
+        <div class="dates" id="resDates"></div>
+        <div class="listing" id="resListing"></div>
+      </div>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="progress-bar" id="progressBar"></div>
+
+    <!-- Error Banner -->
+    <div class="error-banner" id="errorBanner"></div>
+
+    <!-- Step: Guest Info -->
+    <div class="form-section" id="step-guest_info">
+      <div class="section-card">
+        <div class="section-title">Guest Information</div>
+        <div class="section-desc">Please verify and complete your details.</div>
+        <div id="guestInfoFields"></div>
+      </div>
+    </div>
+
+    <!-- Step: Arrival Info -->
+    <div class="form-section" id="step-arrival_info">
+      <div class="section-card">
+        <div class="section-title">Arrival Details</div>
+        <div class="section-desc">Help us prepare for your arrival.</div>
+        <div id="arrivalInfoFields"></div>
+      </div>
+    </div>
+
+    <!-- Step: ID Verification -->
+    <div class="form-section" id="step-id_verification">
+      <div class="section-card">
+        <div class="section-title">ID Verification</div>
+        <div class="section-desc">Please upload a photo of your government-issued ID. This is required for security purposes.</div>
+
+        <div class="field-group">
+          <label class="field-label">ID Type<span class="required">*</span></label>
+          <select class="field-input" id="idType">
+            <option value="">Select ID type...</option>
+            <option value="passport">Passport</option>
+            <option value="drivers_license">Driver's License</option>
+            <option value="national_id">National ID</option>
+          </select>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Front of ID<span class="required">*</span></label>
+          <div class="upload-area" id="idFrontUpload" onclick="document.getElementById('idFrontInput').click()">
+            <svg class="upload-icon" viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+            <div class="upload-text">Tap to <strong>upload photo</strong><br>or drag and drop</div>
+            <img class="upload-preview" id="idFrontPreview">
+            <div class="upload-filename" id="idFrontName"></div>
+            <button class="upload-remove" id="idFrontRemove" onclick="event.stopPropagation(); removeUpload('idFront')">Remove</button>
+          </div>
+          <input type="file" id="idFrontInput" accept="image/*" capture="environment">
+        </div>
+
+        <div class="field-group" id="idBackGroup" style="display:none;">
+          <label class="field-label">Back of ID</label>
+          <div class="upload-area" id="idBackUpload" onclick="document.getElementById('idBackInput').click()">
+            <svg class="upload-icon" viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+            <div class="upload-text">Tap to <strong>upload back</strong></div>
+            <img class="upload-preview" id="idBackPreview">
+            <div class="upload-filename" id="idBackName"></div>
+            <button class="upload-remove" id="idBackRemove" onclick="event.stopPropagation(); removeUpload('idBack')">Remove</button>
+          </div>
+          <input type="file" id="idBackInput" accept="image/*" capture="environment">
+        </div>
+      </div>
+    </div>
+
+    <!-- Step: Selfie -->
+    <div class="form-section" id="step-selfie">
+      <div class="section-card">
+        <div class="section-title">Selfie Verification</div>
+        <div class="section-desc">Take a selfie to verify your identity matches your ID.</div>
+        <div class="field-group">
+          <div class="upload-area" id="selfieUpload" onclick="document.getElementById('selfieInput').click()">
+            <svg class="upload-icon" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+            <div class="upload-text">Tap to <strong>take a selfie</strong></div>
+            <img class="upload-preview" id="selfiePreview">
+            <div class="upload-filename" id="selfieName"></div>
+            <button class="upload-remove" id="selfieRemove" onclick="event.stopPropagation(); removeUpload('selfie')">Remove</button>
+          </div>
+          <input type="file" id="selfieInput" accept="image/*" capture="user">
+        </div>
+      </div>
+    </div>
+
+    <!-- Step: Vehicle Info -->
+    <div class="form-section" id="step-vehicle_info">
+      <div class="section-card">
+        <div class="section-title">Vehicle Information</div>
+        <div class="section-desc">If you're arriving by car, please provide your vehicle details for parking.</div>
+        <div id="vehicleInfoFields"></div>
+      </div>
+    </div>
+
+    <!-- Step: House Rules -->
+    <div class="form-section" id="step-house_rules">
+      <div class="section-card">
+        <div class="section-title">House Rules</div>
+        <div class="section-desc">Please read and acknowledge the house rules for your stay.</div>
+        <div class="rules-container" id="houseRulesText"></div>
+        <div class="checkbox-group">
+          <input type="checkbox" id="houseRulesAccept">
+          <label for="houseRulesAccept">I have read and agree to the house rules above.</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step: Rental Agreement -->
+    <div class="form-section" id="step-rental_agreement">
+      <div class="section-card">
+        <div class="section-title">Rental Agreement</div>
+        <div class="section-desc">Please review the rental agreement and sign below.</div>
+        <div class="rules-container" id="rentalAgreementText"></div>
+
+        <div class="field-group" style="margin-top:16px;">
+          <label class="field-label">Your Signature<span class="required">*</span></label>
+          <div class="signature-container">
+            <canvas class="signature-canvas" id="signatureCanvas"></canvas>
+            <div class="signature-placeholder" id="sigPlaceholder">Sign here</div>
+            <div class="signature-actions">
+              <button class="sig-clear-btn" onclick="clearSignature()">Clear</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="checkbox-group">
+          <input type="checkbox" id="agreementAccept">
+          <label for="agreementAccept">I agree to the rental agreement terms above and confirm this is my legal signature.</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step: Custom Questions -->
+    <div class="form-section" id="step-custom_questions">
+      <div class="section-card">
+        <div class="section-title">Additional Information</div>
+        <div class="section-desc">A few more questions to help us make your stay perfect.</div>
+        <div id="customQuestionsFields"></div>
+      </div>
+    </div>
+
+    <!-- Step: Payment Auth (placeholder) -->
+    <div class="form-section" id="step-payment_auth">
+      <div class="section-card">
+        <div class="section-title">Security Deposit Authorization</div>
+        <div class="section-desc">A security deposit hold will be placed on your card. No charges will be made unless there is damage to the property.</div>
+        <div class="field-group">
+          <p style="color:var(--text-muted);font-size:0.9rem;text-align:center;padding:20px 0;">
+            Payment authorization is handled securely through your booking platform. No action needed here.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation Buttons -->
+    <div class="nav-buttons" id="navButtons">
+      <button class="btn btn-secondary" id="prevBtn" onclick="prevStep()" style="display:none;">Back</button>
+      <button class="btn btn-primary" id="nextBtn" onclick="nextStep()">Continue</button>
+      <button class="btn btn-submit" id="submitBtn" onclick="submitForm()" style="display:none;">
+        Complete Check-In
+      </button>
+    </div>
+  </div>
+
+  <!-- Success Screen -->
+  <div class="success-screen" id="successScreen">
+    <div class="success-icon">
+      <svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>
+    </div>
+    <div class="success-title" id="successTitle">You're All Checked In!</div>
+    <div class="success-message" id="successMessage">
+      We look forward to hosting you. If you have any questions, don't hesitate to reach out.
+    </div>
+  </div>
+
+<script>
+// âââââââââââââââââââââââââââââââââââââââââââââ
+// Configuration & State
+// âââââââââââââââââââââââââââââââââââââââââââââ
+let formConfig = null;
+let reservation = null;
+let propertyConfig = null;
+let currentStepIndex = 0;
+let enabledSteps = [];
+let uploads = { idFront: null, idBack: null, selfie: null };
+let signatureData = null;
+let isSigning = false;
+
+// Parse URL params
+const urlParams = new URLSearchParams(window.location.search);
+const accountSlug = urlParams.get('account') || '';
+const propertySlug = urlParams.get('property') || '';
+const reservationId = urlParams.get('reservation') || '';
+const guestFirstName = urlParams.get('firstName') || '';
+const guestLastName = urlParams.get('lastName') || '';
+const checkIn = urlParams.get('checkIn') || '';
+const checkOut = urlParams.get('checkOut') || '';
+const listingName = urlParams.get('listing') || '';
+
+// âââââââââââââââââââââââââââââââââââââââââââââ
+// Initialize
+// âââââââââââââââââââââââââââââââââââââââââââââ
+async function init() {
+  try {
+    // Fetch property config with form settings
+    const res = await fetch(`/api/property/${accountSlug}/${propertySlug}`);
+    if (!res.ok) throw new Error('Property not found');
+    propertyConfig = await res.json();
+
+    formConfig = propertyConfig.checkinFormConfig || getDefaultConfig();
+
+    // Apply branding
+    document.documentElement.style.setProperty('--brand', propertyConfig.brandColor);
+    document.documentElement.style.setProperty('--accent', propertyConfig.accentColor);
+    document.querySelector('meta[name="theme-color"]').content = propertyConfig.brandColor;
+
+    // Logo
+    if (propertyConfig.logoUrl) {
+      const logo = document.getElementById('headerLogo');
+      logo.src = propertyConfig.logoUrl;
+      logo.alt = propertyConfig.name;
+      logo.style.display = 'block';
+      logo.onerror = () => { logo.style.display = 'none'; };
+    }
+
+    document.title = `Check In - ${propertyConfig.name}`;
+
+    // Populate reservation banner
+    document.getElementById('resGuestName').textContent =
+      `${guestFirstName} ${guestLastName}`.trim() || 'Guest';
+    document.getElementById('resDates').textContent =
+      `${formatDate(checkIn)} - ${formatDate(checkOut)}`;
+    if (listingName) {
+      document.getElementById('resListing').textContent = listingName;
+    }
+
+    // Build enabled steps from config
+    buildSteps();
+
+    // Build dynamic form fields
+    buildGuestInfoFields();
+    buildArrivalInfoFields();
+    buildVehicleInfoFields();
+    buildCustomQuestions();
+
+    // Set up house rules and rental agreement text
+    if (formConfig.house_rules?.rules_text) {
+      document.getElementById('houseRulesText').textContent = formConfig.house_rules.rules_text;
+    }
+    if (formConfig.rental_agreement?.agreement_text) {
+      document.getElementById('rentalAgreementText').textContent = formConfig.rental_agreement.agreement_text;
+    }
+
+    // Show ID back field based on config
+    if (formConfig.id_verification?.require_back) {
+      document.getElementById('idBackGroup').style.display = 'block';
+    }
+
+    // Set up file upload handlers
+    setupUploadHandlers();
+
+    // Initialize signature pad
+    if (enabledSteps.includes('rental_agreement')) {
+      initSignaturePad();
+    }
+
+    // Show first step
+    showStep(0);
+
+    // Show content
+    document.getElementById('pageLoader').style.display = 'none';
+    document.getElementById('mainContent').style.display = 'flex';
+
+  } catch (err) {
+    console.error('Init error:', err);
+    document.getElementById('pageLoader').innerHTML =
+      '<div style="text-align:center;padding:40px;color:#6C757D;">' +
+      '<p style="font-size:1.2rem;margin-bottom:8px;">Unable to load check-in form</p>' +
+      '<p>Please try again or contact the property manager.</p></div>';
+  }
+}
+
+function getDefaultConfig() {
+  return {
+    enabled_sections: {
+      guest_info: true, id_verification: true, selfie: false,
+      signature: true, house_rules: true, rental_agreement: false,
+      vehicle_info: false, arrival_info: true, custom_questions: false,
+      payment_auth: false
+    },
+    guest_info_fields: {
+      full_name: { enabled: true, required: true },
+      email: { enabled: true, required: true },
+      phone: { enabled: true, required: true },
+      address: { enabled: true, required: false },
+      num_guests: { enabled: true, required: true },
+      num_adults: { enabled: false, required: false },
+      num_children: { enabled: false, required: false }
+    },
+    id_verification: { require_front: true, require_back: false, accepted_types: ['passport', 'drivers_license', 'national_id'], max_file_size_mb: 10 },
+    arrival_info: { ask_eta: true, ask_flight_info: false, ask_special_requests: true },
+    house_rules: { rules_text: '', require_acknowledgment: true },
+    rental_agreement: { agreement_text: '', require_signature: true },
+    custom_questions: [],
+    vehicle_info: { ask_make_model: true, ask_license_plate: true, ask_color: false },
+    completion_message: 'You are all checked in! We look forward to hosting you.',
+    redirect_after_submit: ''
+  };
+}
+
+// âââââââââââââââââââââââââââââââââââââââââââââ
+// Build Steps
+// âââââââââââââââââââââââââââââââââââââââââââââ
+const STEP_ORDER = [
+  'guest_info', 'arrival_info', 'id_verification', 'selfie',
+  'vehicle_info', 'house_rules', 'rental_agreement', 'custom_questions', 'payment_auth'
+];
+
+const STEP_LABELS = {
+  guest_info: 'Info',
+  arrival_info: 'Arrival',
+  id_verification: 'ID',
+  selfie: 'Selfie',
+  vehicle_info: 'Vehicle',
+  house_rules: 'Rules',
+  rental_agreement: 'Agreement',
+  custom_questions: 'Questions',
+  payment_auth: 'Payment'
+};
+
+function buildSteps() {
+  const sections = formConfig.enabled_sections || {};
+  enabledSteps = STEP_ORDER.filter(s => sections[s]);
+
+  // Build progress bar
+  const bar = document.getElementById('progressBar');
+  bar.innerHTML = '';
+  enabledSteps.forEach((step, i) => {
+    if (i > 0) {
+      const line = document.createElement('div');
+      line.className = 'progress-line';
+      line.id = `pline-${i}`;
+      bar.appendChild(line);
+    }
+    const div = document.createElement('div');
+    div.className = 'progress-step';
+    div.id = `pstep-${i}`;
+    div.innerHTML = `
+      <div class="progress-dot">${i + 1}</div>
+      <div class="step-label">${STEP_LABELS[step] || step}</div>
+    `;
+    bar.appendChild(div);
+  });
+}
+
+// âââââââââââââââââââââââââââââââââââââââââââââ
+// Build Dynamic Fields
+// âââââââââââââââââââââââââââââââââââââââââââââ
+function buildGuestInfoFields() {
+  const fields = formConfig.guest_info_fields || {};
+  const container = document.getElementById('guestInfoFields');
+  container.innerHTML = '';
+
+  const fieldDefs = [
+    { key: 'full_name', label: 'Full Name', type: 'text', placeholder: 'John Smith', autocomplete: 'name', prefill: `${guestFirstName} ${guestLastName}`.trim() },
+    { key: 'email', label: 'Email Address', type: 'email', placeholder: 'john@example.com', autocomplete: 'email' },
+    { key: 'phone', label: 'Phone Number', type: 'tel', placeholder: '+1 (555) 123-4567', autocomplete: 'tel' },
+    { key: 'address', label: 'Home Address', type: 'textarea', placeholder: '123 Main St, City, State, ZIP' },
+    { key: 'num_guests', label: 'Total Number of Guests', type: 'number', placeholder: '2' },
+    { key: 'num_adults', label: 'Number of Adults', type: 'number', placeholder: '2' },
+    { key: 'num_children', label: 'Number of Children', type: 'number', placeholder: '0' },
+  ];
+
+  fieldDefs.forEach(def => {
+    const config = fields[def.key];
+    if (!config || !config.enabled) return;
+
+    const group = document.createElement('div');
+    group.className = 'field-group';
+
+    const req = config.required ? '<span class="required">*</span>' : '';
+    const inputId = `gi_${def.key}`;
+
+    if (def.type === 'textarea') {
+      group.innerHTML = `
+        <label class="field-label" for="${inputId}">${def.label}${req}</label>
+        <textarea class="field-input" id="${inputId}" placeholder="${def.placeholder}" ${config.required ? 'data-required="true"' : ''}></textarea>
+      `;
+    } else {
+      group.innerHTML = `
+        <label class="field-label" for="${inputId}">${def.label}${req}</label>
+        <input type="${def.type}" class="field-input" id="${inputId}" placeholder="${def.placeholder}"
+          ${def.autocomplete ? `autocomplete="${def.autocomplete}"` : ''}
+          ${config.required ? 'data-required="true"' : ''}
+          ${def.prefill ? `value="${escapeHtml(def.prefill)}"` : ''}>
+      `;
+    }
+
+    container.appendChild(group);
+  });
+}
+
+function buildArrivalInfoFields() {
+  const info = formConfig.arrival_info || {};
+  const container = document.getElementById('arrivalInfoFields');
+  container.innerHTML = '';
+
+  if (info.ask_eta) {
+    container.innerHTML += `
+      <div class="field-group">
+        <label class="field-label" for="arrivalEta">Estimated Arrival Time<span class="required">*</span></label>
+        <select class="field-input" id="arrivalEta" data-required="true">
+          <option value="">Select a time...</option>
+          <option value="before_12pm">Before 12:00 PM</option>
+          <option value="12pm_2pm">12:00 PM - 2:00 PM</option>
+          <option value="2pm_4pm">2:00 PM - 4:00 PM</option>
+          <option value="4pm_6pm">4:00 PM - 6:00 PM</option>
+          <option value="6pm_8pm">6:00 PM - 8:00 PM</option>
+          <option value="8pm_10pm">8:00 PM - 10:00 PM</option>
+          <option value="after_10pm">After 10:00 PM</option>
+          <option value="next_day">Next Day</option>
+          <option value="unsure">Not Sure Yet</option>
+        </select>
+      </div>
+    `;
+  }
+
+  if (info.ask_flight_info) {
+    container.innerHTML += `
+      <div class="field-group">
+        <label class="field-label" for="flightInfo">Flight Number (optional)</label>
+        <input type="text" class="field-input" id="flightInfo" placeholder="e.g. AA 1234">
+        <div class="field-hint">If arriving by air, this helps us track delays</div>
+      </div>
+    `;
+  }
+
+  if (info.ask_special_requests) {
+    container.innerHTML += `
+      <div class="field-group">
+        <label class="field-label" for="specialRequests">Special Requests (optional)</label>
+        <textarea class="field-input" id="specialRequests" placeholder="Any special needs, early check-in requests, etc."></textarea>
+      </div>
+    `;
+  }
+}
+
+function buildVehicleInfoFields() {
+  const info = formConfig.vehicle_info || {};
+  const container = document.getElementById('vehicleInfoFields');
+  container.innerHTML = '';
+
+  if (info.ask_make_model) {
+    container.innerHTML += `
+      <div class="field-group">
+        <label class="field-label" for="vehicleMakeModel">Make & Model</label>
+        <input type="text" class="field-input" id="vehicleMakeModel" placeholder="e.g. Toyota Camry">
+      </div>
+    `;
+  }
+
+  if (info.ask_license_plate) {
+    container.innerHTML += `
+      <div class="field-group">
+        <label class="field-label" for="vehiclePlate">License Plate</label>
+        <input type="text" class="field-input" id="vehiclePlate" placeholder="e.g. ABC 1234" style="text-transform:uppercase;">
+      </div>
+    `;
+  }
+
+  if (info.ask_color) {
+    container.innerHTML += `
+      <div class="field-group">
+        <label class="field-label" for="vehicleColor">Vehicle Color</label>
+        <input type="text" class="field-input" id="vehicleColor" placeholder="e.g. Silver">
+      </div>
+    `;
+  }
+}
+
+function buildCustomQuestions() {
+  const questions = formConfig.custom_questions || [];
+  const container = document.getElementById('customQuestionsFields');
+  container.innerHTML = '';
+
+  questions.forEach((q, i) => {
+    const group = document.createElement('div');
+    group.className = 'field-group';
+    const req = q.required ? '<span class="required">*</span>' : '';
+    const inputId = `cq_${i}`;
+
+    if (q.type === 'select' && q.options) {
+      const opts = q.options.map(o => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join('');
+      group.innerHTML = `
+        <label class="field-label" for="${inputId}">${escapeHtml(q.label)}${req}</label>
+        <select class="field-input" id="${inputId}" ${q.required ? 'data-required="true"' : ''}>
+          <option value="">Select...</option>
+          ${opts}
+        </select>
+      `;
+    } else if (q.type === 'textarea') {
+      group.innerHTML = `
+        <label class="field-label" for="${inputId}">${escapeHtml(q.label)}${req}</label>
+        <textarea class="field-input" id="${inputId}" placeholder="${escapeHtml(q.placeholder || '')}" ${q.required ? 'data-required="true"' : ''}></textarea>
+      `;
+    } else if (q.type === 'checkbox') {
+      group.innerHTML = `
+        <div class="checkbox-group">
+          <input type="checkbox" id="${inputId}" ${q.required ? 'data-required="true"' : ''}>
+          <label for="${inputId}">${escapeHtml(q.label)}</label>
+        </div>
+      `;
+    } else {
+      group.innerHTML = `
+        <label class="field-label" for="${inputId}">${escapeHtml(q.label)}${req}</label>
+        <input type="${q.type || 'text'}" class="field-input" id="${inputId}" placeholder="${escapeHtml(q.placeholder || '')}" ${q.required ? 'data-required="true"' : ''}>
+      `;
+    }
+
+    container.appendChild(group);
+  });
+}
+
+// âââââââââââââââââââââââââââââââââââââââââââââ
+// File Upload Handlers
+// âââââââââââââââââââââââââââââââââââââââââââââ
+function setupUploadHandlers() {
+  ['idFront', 'idBack', 'selfie'].forEach(key => {
+    const input = document.getElementById(`${key}Input`);
+    const area = document.getElementById(`${key}Upload`);
+
+    input.addEventListener('change', (e) => {
+      handleFile(key, e.target.files[0]);
+    });
+
+    // Drag and drop
+    area.addEventListener('dragover', (e) => { e.preventDefault(); area.classList.add('dragover'); });
+    area.addEventListener('dragleave', () => { area.classList.remove('dragover'); });
+    area.addEventListener('drop', (e) => {
+      e.preventDefault();
+      area.classList.remove('dragover');
+      if (e.dataTransfer.files[0]) handleFile(key, e.dataTransfer.files[0]);
+    });
+  });
+}
+
+function handleFile(key, file) {
+  if (!file) return;
+  const maxMb = formConfig.id_verification?.max_file_size_mb || 10;
+  if (file.size > maxMb * 1024 * 1024) {
+    showError(`File too large. Maximum size is ${maxMb}MB.`);
+    return;
+  }
+
+  uploads[key] = file;
+  const area = document.getElementById(`${key}Upload`);
+  const preview = document.getElementById(`${key}Preview`);
+  const fname = document.getElementById(`${key}Name`);
+  const removeBtn = document.getElementById(`${key}Remove`);
+
+  area.classList.add('has-file');
+
+  if (file.type.startsWith('image/')) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      preview.src = e.target.result;
+      preview.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  fname.textContent = file.name;
+  fname.style.display = 'block';
+  removeBtn.style.display = 'inline';
+}
+
+function removeUpload(key) {
+  uploads[key] = null;
+  const area = document.getElementById(`${key}Upload`);
+  const preview = document.getElementById(`${key}Preview`);
+  const fname = document.getElementById(`${key}Name`);
+  const removeBtn = document.getElementById(`${key}Remove`);
+  const input = document.getElementById(`${key}Input`);
+
+  area.classList.remove('has-file');
+  preview.style.display = 'none';
+  fname.style.display = 'none';
+  removeBtn.style.display = 'none';
+  input.value = '';
+}
+
+// âââââââââââââââââââââââââââââââââââââââââââââ
+// Signature Pad
+// âââââââââââââââââââââââââââââââââââââââââââââ
+let sigCanvas, sigCtx;
+
+function initSignaturePad() {
+  sigCanvas = document.getElementById('signatureCanvas');
+  sigCtx = sigCanvas.getContext('2d');
+
+  const resizeCanvas = () => {
+    const rect = sigCanvas.parentElement.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    sigCanvas.width = rect.width * dpr;
+    sigCanvas.height = 180 * dpr;
+    sigCanvas.style.width = rect.width + 'px';
+    sigCanvas.style.height = '180px';
+    sigCtx.scale(dpr, dpr);
+    sigCtx.strokeStyle = '#1A1A1A';
+    sigCtx.lineWidth = 2;
+    sigCtx.lineCap = 'round';
+    sigCtx.lineJoin = 'round';
+  };
+
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+
+  let drawing = false;
+  let lastX, lastY;
+
+  const getPos = (e) => {
+    const rect = sigCanvas.getBoundingClientRect();
+    const touch = e.touches ? e.touches[0] : e;
+    return [touch.clientX - rect.left, touch.clientY - rect.top];
+  };
+
+  const start = (e) => {
+    e.preventDefault();
+    drawing = true;
+    isSigning = true;
+    [lastX, lastY] = getPos(e);
+    document.getElementById('sigPlaceholder').style.opacity = '0';
+  };
+
+  const move = (e) => {
+    if (!drawing) return;
+    e.preventDefault();
+    const [x, y] = getPos(e);
+    sigCtx.beginPath();
+    sigCtx.moveTo(lastX, lastY);
+    sigCtx.lineTo(x, y);
+    sigCtx.stroke();
+    [lastX, lastY] = [x, y];
+  };
+
+  const end = () => {
+    drawing = false;
+    signatureData = sigCanvas.toDataURL('image/png');
+  };
+
+  sigCanvas.addEventListener('mousedown', start);
+  sigCanvas.addEventListener('mousemove', move);
+  sigCanvas.addEventListener('mouseup', end);
+  sigCanvas.addEventListener('mouseleave', end);
+  sigCanvas.addEventListener('touchstart', start, { passive: false });
+  sigCanvas.addEventListener('touchmove', move, { passive: false });
+  sigCanvas.addEventListener('touchend', end);
+}
+
+function clearSignature() {
+  if (!sigCanvas || !sigCtx) return;
+  const dpr = window.devicePixelRatio || 1;
+  sigCtx.clearRect(0, 0, sigCanvas.width / dpr, sigCanvas.height / dpr);
+  signatureData = null;
+  isSigning = false;
+  document.getElementById('sigPlaceholder').style.opacity = '1';
+}
+
+// âââââââââââââââââââââââââââââââââââââââââââââ
+// Step Navigation
+// âââââââââââââââââââââââââââââââââââââââââââââ
+function showStep(index) {
+  currentStepIndex = index;
+
+  // Hide all sections
+  document.querySelectorAll('.form-section').forEach(s => s.classList.remove('active'));
+
+  // Show current
+  const stepId = enabledSteps[index];
+  const section = document.getElementById(`step-${stepId}`);
+  if (section) section.classList.add('active');
+
+  // Update progress bar
+  enabledSteps.forEach((_, i) => {
+    const pstep = document.getElementById(`pstep-${i}`);
+    const pline = document.getElementById(`pline-${i}`);
+    if (pstep) {
+      pstep.className = 'progress-step';
+      if (i < index) pstep.classList.add('completed');
+      if (i === index) pstep.classList.add('active');
+    }
+    if (pline) {
+      pline.className = 'progress-line';
+      if (i <= index) pline.classList.add('filled');
+    }
+  });
+
+  // Update dots with checkmarks for completed
+  enabledSteps.forEach((_, i) => {
+    const dot = document.querySelector(`#pstep-${i} .progress-dot`);
+    if (dot) {
+      if (i < index) {
+        dot.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>';
+      } else {
+        dot.textContent = i + 1;
+      }
+    }
+  });
+
+  // Update buttons
+  const isFirst = index === 0;
+  const isLast = index === enabledSteps.length - 1;
+
+  document.getElementById('prevBtn').style.display = isFirst ? 'none' : 'block';
+  document.getElementById('nextBtn').style.display = isLast ? 'none' : 'block';
+  document.getElementById('submitBtn').style.display = isLast ? 'block' : 'none';
+
+  // Hide error
+  hideError();
+
+  // Scroll to top
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function nextStep() {
+  if (!validateCurrentStep()) return;
+  if (currentStepIndex < enabledSteps.length - 1) {
+    showStep(currentStepIndex + 1);
+  }
+}
+
+function prevStep() {
+  if (currentStepIndex > 0) {
+    showStep(currentStepIndex - 1);
+  }
+}
+
+// âââââââââââââââââââââââââââââââââââââââââââââ
+// Validation
+// âââââââââââââââââââââââââââââââââââââââââââââ
+function validateCurrentStep() {
+  const stepId = enabledSteps[currentStepIndex];
+  hideError();
+
+  switch (stepId) {
+    case 'guest_info':
+      return validateRequiredFields('step-guest_info');
+
+    case 'arrival_info':
+      return validateRequiredFields('step-arrival_info');
+
+    case 'id_verification':
+      if (!document.getElementById('idType').value) {
+        showError('Please select your ID type.');
+        return false;
+      }
+      if (formConfig.id_verification?.require_front && !uploads.idFront) {
+        showError('Please upload the front of your ID.');
+        return false;
+      }
+      if (formConfig.id_verification?.require_back && !uploads.idBack) {
+        showError('Please upload the back of your ID.');
+        return false;
+      }
+      return true;
+
+    case 'selfie':
+      if (!uploads.selfie) {
+        showError('Please take a selfie for verification.');
+        return false;
+      }
+      return true;
+
+    case 'vehicle_info':
+      return true; // Vehicle info is optional
+
+    case 'house_rules':
+      if (formConfig.house_rules?.require_acknowledgment &&
+          !document.getElementById('houseRulesAccept').checked) {
+        showError('Please acknowledge the house rules to continue.');
+        return false;
+      }
+      return true;
+
+    case 'rental_agreement':
+      if (formConfig.rental_agreement?.require_signature) {
+        if (!isSigning || !signatureData) {
+          showError('Please sign the rental agreement.');
+          return false;
+        }
+        if (!document.getElementById('agreementAccept').checked) {
+          showError('Please check the box to confirm your agreement.');
+          return false;
+        }
+      }
+      return true;
+
+    case 'custom_questions':
+      return validateRequiredFields('step-custom_questions');
+
+    case 'payment_auth':
+      return true;
+
+    default:
+      return true;
+  }
+}
+
+function validateRequiredFields(sectionId) {
+  const section = document.getElementById(sectionId);
+  const fields = section.querySelectorAll('[data-required="true"]');
+
+  for (const field of fields) {
+    if (field.type === 'checkbox') {
+      if (!field.checked) {
+        showError(`Please complete all required fields.`);
+        field.focus();
+        return false;
+      }
+    } else if (!field.value.trim()) {
+      showError(`Please complete all required fields.`);
+      field.classList.add('error');
+      field.focus();
+      field.addEventListener('input', () => field.classList.remove('error'), { once: true });
+      return false;
+    }
+  }
+  return true;
+}
+
+// âââââââââââââââââââââââââââââââââââââââââââââ
+// Submit
+// âââââââââââââââââââââââââââââââââââââââââââââ
+async function submitForm() {
+  if (!validateCurrentStep()) return;
+
+  const submitBtn = document.getElementById('submitBtn');
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<span class="spinner"></span> Submitting...';
+
+  try {
+    // Collect all form data
+    const formData = new FormData();
+    formData.append('accountSlug', accountSlug);
+    formData.append('propertySlug', propertySlug);
+    formData.append('reservationId', reservationId);
+
+    // Guest info
+    const giFields = ['full_name', 'email', 'phone', 'address', 'num_guests', 'num_adults', 'num_children'];
+    giFields.forEach(key => {
+      const el = document.getElementById(`gi_${key}`);
+      if (el) formData.append(key, el.value);
+    });
+
+    // Arrival info
+    const eta = document.getElementById('arrivalEta');
+    if (eta) formData.append('arrival_eta', eta.value);
+    const flight = document.getElementById('flightInfo');
+    if (flight) formData.append('flight_info', flight.value);
+    const special = document.getElementById('specialRequests');
+    if (special) formData.append('special_requests', special.value);
+
+    // Vehicle info
+    const vmm = document.getElementById('vehicleMakeModel');
+    if (vmm) formData.append('vehicle_make_model', vmm.value);
+    const vp = document.getElementById('vehiclePlate');
+    if (vp) formData.append('vehicle_license_plate', vp.value);
+    const vc = document.getElementById('vehicleColor');
+    if (vc) formData.append('vehicle_color', vc.value);
+
+    // ID type
+    const idType = document.getElementById('idType');
+    if (idType) formData.append('id_type', idType.value);
+
+    // File uploads
+    if (uploads.idFront) formData.append('id_front', uploads.idFront);
+    if (uploads.idBack) formData.append('id_back', uploads.idBack);
+    if (uploads.selfie) formData.append('selfie', uploads.selfie);
+
+    // Signature
+    if (signatureData) formData.append('signature', signatureData);
+
+    // House rules & agreement
+    formData.append('house_rules_accepted',
+      document.getElementById('houseRulesAccept')?.checked || false);
+    formData.append('rental_agreement_signed',
+      document.getElementById('agreementAccept')?.checked || false);
+
+    // Custom questions
+    const customAnswers = {};
+    (formConfig.custom_questions || []).forEach((q, i) => {
+      const el = document.getElementById(`cq_${i}`);
+      if (el) {
+        customAnswers[q.label] = el.type === 'checkbox' ? el.checked : el.value;
+      }
+    });
+    formData.append('custom_answers', JSON.stringify(customAnswers));
+
+    const res = await fetch('/api/checkin/submit', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.message || 'Submission failed');
+    }
+
+    // Show success
+    document.getElementById('mainContent').style.display = 'none';
+    const successScreen = document.getElementById('successScreen');
+    successScreen.classList.add('visible');
+
+    if (formConfig.completion_message) {
+      document.getElementById('successMessage').textContent = formConfig.completion_message;
+    }
+
+    // Redirect after success if configured
+    if (formConfig.redirect_after_submit) {
+      setTimeout(() => {
+        window.location.href = formConfig.redirect_after_submit;
+      }, 3000);
+    }
+
+  } catch (err) {
+    console.error('Submit error:', err);
+    showError(err.message || 'Something went wrong. Please try again.');
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = 'Complete Check-In';
+  }
+}
+
+// âââââââââââââââââââââââââââââââââââââââââââââ
+// UI Helpers
+// âââââââââââââââââââââââââââââââââââââââââââââ
+function showError(msg) {
+  const banner = document.getElementById('errorBanner');
+  banner.textContent = msg;
+  banner.classList.add('visible');
+}
+
+function hideError() {
+  document.getElementById('errorBanner').classList.remove('visible');
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  try {
+    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  } catch { return dateStr; }
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// Enter key
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+    e.preventDefault();
+    const isLast = currentStepIndex === enabledSteps.length - 1;
+    if (isLast) submitForm();
+    else nextStep();
+  }
+});
+
+// Boot
+init();
+</script>
+</body>
+</html>
