@@ -1,0 +1,1922 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>No Front Desk — Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,300;1,9..144,400;1,9..144,500&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; background: #0a0a0a; overflow: hidden; }
+  #root { position: fixed; inset: 0; }
+  * { box-sizing: border-box; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+<script type="text/babel">
+
+// animations.jsx
+// Reusable animation starter: Stage, Timeline, Sprite, easing helpers.
+// Usage (in an HTML file that loads React + Babel):
+//
+//   <Stage width={1280} height={720} duration={10} background="#f6f4ef">
+//     <MyScene />
+//   </Stage>
+//
+// Inside <Stage>, any child can call useTime() to read the current
+// playhead (seconds). Or wrap content in <Sprite start={1} end={4}>...</Sprite>
+// to only render during that window -- children receive a `localTime` and
+// `progress` via the useSprite() hook.
+//
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── Easing functions (hand-rolled, Popmotion-style) ─────────────────────────
+// All easings take t ∈ [0,1] and return eased t ∈ [0,1] (may overshoot for back/elastic).
+const Easing = {
+  linear: (t) => t,
+
+  // Quad
+  easeInQuad:    (t) => t * t,
+  easeOutQuad:   (t) => t * (2 - t),
+  easeInOutQuad: (t) => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t),
+
+  // Cubic
+  easeInCubic:    (t) => t * t * t,
+  easeOutCubic:   (t) => (--t) * t * t + 1,
+  easeInOutCubic: (t) => (t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1),
+
+  // Quart
+  easeInQuart:    (t) => t * t * t * t,
+  easeOutQuart:   (t) => 1 - (--t) * t * t * t,
+  easeInOutQuart: (t) => (t < 0.5 ? 8 * t * t * t * t : 1 - 8 * (--t) * t * t * t),
+
+  // Expo
+  easeInExpo:  (t) => (t === 0 ? 0 : Math.pow(2, 10 * (t - 1))),
+  easeOutExpo: (t) => (t === 1 ? 1 : 1 - Math.pow(2, -10 * t)),
+  easeInOutExpo: (t) => {
+    if (t === 0) return 0;
+    if (t === 1) return 1;
+    if (t < 0.5) return 0.5 * Math.pow(2, 20 * t - 10);
+    return 1 - 0.5 * Math.pow(2, -20 * t + 10);
+  },
+
+  // Sine
+  easeInSine:    (t) => 1 - Math.cos((t * Math.PI) / 2),
+  easeOutSine:   (t) => Math.sin((t * Math.PI) / 2),
+  easeInOutSine: (t) => -(Math.cos(Math.PI * t) - 1) / 2,
+
+  // Back (overshoot)
+  easeOutBack: (t) => {
+    const c1 = 1.70158, c3 = c1 + 1;
+    return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+  },
+  easeInBack: (t) => {
+    const c1 = 1.70158, c3 = c1 + 1;
+    return c3 * t * t * t - c1 * t * t;
+  },
+  easeInOutBack: (t) => {
+    const c1 = 1.70158, c2 = c1 * 1.525;
+    return t < 0.5
+      ? (Math.pow(2 * t, 2) * ((c2 + 1) * 2 * t - c2)) / 2
+      : (Math.pow(2 * t - 2, 2) * ((c2 + 1) * (t * 2 - 2) + c2) + 2) / 2;
+  },
+
+  // Elastic
+  easeOutElastic: (t) => {
+    const c4 = (2 * Math.PI) / 3;
+    if (t === 0) return 0;
+    if (t === 1) return 1;
+    return Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * c4) + 1;
+  },
+};
+
+// ── Core interpolation helpers ──────────────────────────────────────────────
+
+// Clamp a value to [min, max]
+const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
+// interpolate([0, 0.5, 1], [0, 100, 50], ease?) -> fn(t)
+// Popmotion-style: linearly maps t across input keyframes to output values,
+// with optional easing per segment (single fn or array of fns).
+function interpolate(input, output, ease = Easing.linear) {
+  return (t) => {
+    if (t <= input[0]) return output[0];
+    if (t >= input[input.length - 1]) return output[output.length - 1];
+    for (let i = 0; i < input.length - 1; i++) {
+      if (t >= input[i] && t <= input[i + 1]) {
+        const span = input[i + 1] - input[i];
+        const local = span === 0 ? 0 : (t - input[i]) / span;
+        const easeFn = Array.isArray(ease) ? (ease[i] || Easing.linear) : ease;
+        const eased = easeFn(local);
+        return output[i] + (output[i + 1] - output[i]) * eased;
+      }
+    }
+    return output[output.length - 1];
+  };
+}
+
+// animate({from, to, start, end, ease})(t) — simpler single-segment tween.
+// Returns `from` before `start`, `to` after `end`.
+function animate({ from = 0, to = 1, start = 0, end = 1, ease = Easing.easeInOutCubic }) {
+  return (t) => {
+    if (t <= start) return from;
+    if (t >= end) return to;
+    const local = (t - start) / (end - start);
+    return from + (to - from) * ease(local);
+  };
+}
+
+// ── Timeline context ────────────────────────────────────────────────────────
+
+const TimelineContext = React.createContext({ time: 0, duration: 10, playing: false });
+
+const useTime = () => React.useContext(TimelineContext).time;
+const useTimeline = () => React.useContext(TimelineContext);
+
+// ── Sprite ──────────────────────────────────────────────────────────────────
+// Renders children only when the playhead is inside [start, end]. Provides
+// a sub-context with `localTime` (seconds since start) and `progress` (0..1).
+//
+//   <Sprite start={2} end={5}>
+//     {({ localTime, progress }) => <Thing x={progress * 100} />}
+//   </Sprite>
+//
+// Or as a plain wrapper — children can call useSprite() themselves.
+
+const SpriteContext = React.createContext({ localTime: 0, progress: 0, duration: 0 });
+const useSprite = () => React.useContext(SpriteContext);
+
+function Sprite({ start = 0, end = Infinity, children, keepMounted = false }) {
+  const { time } = useTimeline();
+  const visible = time >= start && time <= end;
+  if (!visible && !keepMounted) return null;
+
+  const duration = end - start;
+  const localTime = Math.max(0, time - start);
+  const progress = duration > 0 && isFinite(duration)
+    ? clamp(localTime / duration, 0, 1)
+    : 0;
+
+  const value = { localTime, progress, duration, visible };
+
+  return (
+    <SpriteContext.Provider value={value}>
+      {typeof children === 'function' ? children(value) : children}
+    </SpriteContext.Provider>
+  );
+}
+
+// ── Sample sprite components ────────────────────────────────────────────────
+
+// TextSprite: fades/slides text in on entry, holds, then fades out on exit.
+// Props: text, x, y, size, color, font, entryDur, exitDur, align
+function TextSprite({
+  text,
+  x = 0, y = 0,
+  size = 48,
+  color = '#111',
+  font = 'Inter, system-ui, sans-serif',
+  weight = 600,
+  entryDur = 0.45,
+  exitDur = 0.35,
+  entryEase = Easing.easeOutBack,
+  exitEase = Easing.easeInCubic,
+  align = 'left',
+  letterSpacing = '-0.01em',
+}) {
+  const { localTime, duration } = useSprite();
+  const exitStart = Math.max(0, duration - exitDur);
+
+  let opacity = 1;
+  let ty = 0;
+
+  if (localTime < entryDur) {
+    const t = entryEase(clamp(localTime / entryDur, 0, 1));
+    opacity = t;
+    ty = (1 - t) * 16;
+  } else if (localTime > exitStart) {
+    const t = exitEase(clamp((localTime - exitStart) / exitDur, 0, 1));
+    opacity = 1 - t;
+    ty = -t * 8;
+  }
+
+  const translateX = align === 'center' ? '-50%' : align === 'right' ? '-100%' : '0';
+
+  return (
+    <div style={{
+      position: 'absolute',
+      left: x, top: y,
+      transform: `translate(${translateX}, ${ty}px)`,
+      opacity,
+      fontFamily: font,
+      fontSize: size,
+      fontWeight: weight,
+      color,
+      letterSpacing,
+      whiteSpace: 'pre',
+      lineHeight: 1.1,
+      willChange: 'transform, opacity',
+    }}>
+      {text}
+    </div>
+  );
+}
+
+// ImageSprite: scales + fades in; optional Ken Burns drift during hold.
+function ImageSprite({
+  src,
+  x = 0, y = 0,
+  width = 400, height = 300,
+  entryDur = 0.6,
+  exitDur = 0.4,
+  kenBurns = false,
+  kenBurnsScale = 1.08,
+  radius = 12,
+  fit = 'cover',
+  placeholder = null, // {label: string} for striped placeholder
+}) {
+  const { localTime, duration } = useSprite();
+  const exitStart = Math.max(0, duration - exitDur);
+
+  let opacity = 1;
+  let scale = 1;
+
+  if (localTime < entryDur) {
+    const t = Easing.easeOutCubic(clamp(localTime / entryDur, 0, 1));
+    opacity = t;
+    scale = 0.96 + 0.04 * t;
+  } else if (localTime > exitStart) {
+    const t = Easing.easeInCubic(clamp((localTime - exitStart) / exitDur, 0, 1));
+    opacity = 1 - t;
+    scale = (kenBurns ? kenBurnsScale : 1) + 0.02 * t;
+  } else if (kenBurns) {
+    const holdSpan = exitStart - entryDur;
+    const holdT = holdSpan > 0 ? (localTime - entryDur) / holdSpan : 0;
+    scale = 1 + (kenBurnsScale - 1) * holdT;
+  }
+
+  const content = placeholder ? (
+    <div style={{
+      width: '100%', height: '100%',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: 'repeating-linear-gradient(135deg, #e9e6df 0 10px, #dcd8cf 10px 20px)',
+      color: '#6b6458',
+      fontFamily: 'JetBrains Mono, ui-monospace, monospace',
+      fontSize: 13,
+      letterSpacing: '0.04em',
+      textTransform: 'uppercase',
+    }}>
+      {placeholder.label || 'image'}
+    </div>
+  ) : (
+    <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: fit, display: 'block' }} />
+  );
+
+  return (
+    <div style={{
+      position: 'absolute',
+      left: x, top: y,
+      width, height,
+      opacity,
+      transform: `scale(${scale})`,
+      transformOrigin: 'center',
+      borderRadius: radius,
+      overflow: 'hidden',
+      willChange: 'transform, opacity',
+    }}>
+      {content}
+    </div>
+  );
+}
+
+// RectSprite: simple rectangle that animates position/size/color via props.
+// Useful demo primitive — takes a `render` fn for per-frame customization.
+function RectSprite({
+  x = 0, y = 0,
+  width = 100, height = 100,
+  color = '#111',
+  radius = 8,
+  entryDur = 0.4,
+  exitDur = 0.3,
+  render, // optional: (ctx) => style overrides
+}) {
+  const spriteCtx = useSprite();
+  const { localTime, duration } = spriteCtx;
+  const exitStart = Math.max(0, duration - exitDur);
+
+  let opacity = 1;
+  let scale = 1;
+
+  if (localTime < entryDur) {
+    const t = Easing.easeOutBack(clamp(localTime / entryDur, 0, 1));
+    opacity = clamp(localTime / entryDur, 0, 1);
+    scale = 0.4 + 0.6 * t;
+  } else if (localTime > exitStart) {
+    const t = Easing.easeInQuad(clamp((localTime - exitStart) / exitDur, 0, 1));
+    opacity = 1 - t;
+    scale = 1 - 0.15 * t;
+  }
+
+  const overrides = render ? render(spriteCtx) : {};
+
+  return (
+    <div style={{
+      position: 'absolute',
+      left: x, top: y,
+      width, height,
+      background: color,
+      borderRadius: radius,
+      opacity,
+      transform: `scale(${scale})`,
+      transformOrigin: 'center',
+      willChange: 'transform, opacity',
+      ...overrides,
+    }} />
+  );
+}
+
+
+function Stage({
+  width = 1280,
+  height = 720,
+  duration = 10,
+  background = '#f6f4ef',
+  fps = 60,
+  loop = true,
+  autoplay = true,
+  persistKey = 'animstage',
+  children,
+}) {
+  const [time, setTime] = React.useState(() => {
+    try {
+      const v = parseFloat(localStorage.getItem(persistKey + ':t') || '0');
+      return isFinite(v) ? clamp(v, 0, duration) : 0;
+    } catch { return 0; }
+  });
+  const [playing, setPlaying] = React.useState(autoplay);
+  const [hoverTime, setHoverTime] = React.useState(null);
+  const [scale, setScale] = React.useState(1);
+
+  const stageRef = React.useRef(null);
+  const canvasRef = React.useRef(null);
+  const rafRef = React.useRef(null);
+  const lastTsRef = React.useRef(null);
+
+  // Persist playhead
+  React.useEffect(() => {
+    try { localStorage.setItem(persistKey + ':t', String(time)); } catch {}
+  }, [time, persistKey]);
+
+  // Auto-scale to fit viewport
+  React.useEffect(() => {
+    if (!stageRef.current) return;
+    const el = stageRef.current;
+    const measure = () => {
+      const barH = 44; // playback bar height
+      const s = Math.min(
+        el.clientWidth / width,
+        (el.clientHeight - barH) / height
+      );
+      setScale(Math.max(0.05, s));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    window.addEventListener('resize', measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, [width, height]);
+
+  // Animation loop
+  React.useEffect(() => {
+    if (!playing) {
+      lastTsRef.current = null;
+      return;
+    }
+    const step = (ts) => {
+      if (lastTsRef.current == null) lastTsRef.current = ts;
+      const dt = (ts - lastTsRef.current) / 1000;
+      lastTsRef.current = ts;
+      setTime((t) => {
+        let next = t + dt;
+        if (next >= duration) {
+          if (loop) next = next % duration;
+          else { next = duration; setPlaying(false); }
+        }
+        return next;
+      });
+      rafRef.current = requestAnimationFrame(step);
+    };
+    rafRef.current = requestAnimationFrame(step);
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      lastTsRef.current = null;
+    };
+  }, [playing, duration, loop]);
+
+  // Keyboard: space = play/pause, ← → = seek
+  React.useEffect(() => {
+    const onKey = (e) => {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+      if (e.code === 'Space') {
+        e.preventDefault();
+        setPlaying(p => !p);
+      } else if (e.code === 'ArrowLeft') {
+        setTime(t => clamp(t - (e.shiftKey ? 1 : 0.1), 0, duration));
+      } else if (e.code === 'ArrowRight') {
+        setTime(t => clamp(t + (e.shiftKey ? 1 : 0.1), 0, duration));
+      } else if (e.key === '0' || e.code === 'Home') {
+        setTime(0);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [duration]);
+
+  const displayTime = hoverTime != null ? hoverTime : time;
+
+  const ctxValue = React.useMemo(
+    () => ({ time: displayTime, duration, playing, setTime, setPlaying }),
+    [displayTime, duration, playing]
+  );
+
+  return (
+    <div
+      ref={stageRef}
+      style={{
+        position: 'absolute', inset: 0,
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center',
+        background: '#0a0a0a',
+        fontFamily: 'Inter, system-ui, sans-serif',
+      }}
+    >
+      {/* Canvas area — vertically centered in remaining space */}
+      <div style={{
+        flex: 1,
+        width: '100%',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        overflow: 'hidden',
+        minHeight: 0,
+      }}>
+        <div
+          ref={canvasRef}
+          style={{
+            width, height,
+            background,
+            position: 'relative',
+            transform: `scale(${scale})`,
+            transformOrigin: 'center',
+            flexShrink: 0,
+            boxShadow: '0 20px 60px rgba(0,0,0,0.4)',
+            overflow: 'hidden',
+          }}
+        >
+          <TimelineContext.Provider value={ctxValue}>
+            {children}
+          </TimelineContext.Provider>
+        </div>
+      </div>
+
+      {/* Playback bar — stacked below canvas, never overlapping */}
+      <PlaybackBar
+        time={displayTime}
+        actualTime={time}
+        duration={duration}
+        playing={playing}
+        onPlayPause={() => setPlaying(p => !p)}
+        onReset={() => { setTime(0); }}
+        onSeek={(t) => setTime(t)}
+        onHover={(t) => setHoverTime(t)}
+      />
+    </div>
+  );
+}
+
+// ── Playback bar ────────────────────────────────────────────────────────────
+// Play/pause, return-to-begin, scrub track, time display.
+// Uses fixed-width time fields so layout doesn't thrash.
+
+function PlaybackBar({ time, duration, playing, onPlayPause, onReset, onSeek, onHover }) {
+  const trackRef = React.useRef(null);
+  const [dragging, setDragging] = React.useState(false);
+
+  const timeFromEvent = React.useCallback((e) => {
+    const rect = trackRef.current.getBoundingClientRect();
+    const x = clamp((e.clientX - rect.left) / rect.width, 0, 1);
+    return x * duration;
+  }, [duration]);
+
+  const onTrackMove = (e) => {
+    if (!trackRef.current) return;
+    const t = timeFromEvent(e);
+    if (dragging) {
+      onSeek(t);
+    } else {
+      onHover(t);
+    }
+  };
+
+  const onTrackLeave = () => {
+    if (!dragging) onHover(null);
+  };
+
+  const onTrackDown = (e) => {
+    setDragging(true);
+    const t = timeFromEvent(e);
+    onSeek(t);
+    onHover(null);
+  };
+
+  React.useEffect(() => {
+    if (!dragging) return;
+    const onUp = () => setDragging(false);
+    const onMove = (e) => {
+      if (!trackRef.current) return;
+      const t = timeFromEvent(e);
+      onSeek(t);
+    };
+    window.addEventListener('mouseup', onUp);
+    window.addEventListener('mousemove', onMove);
+    return () => {
+      window.removeEventListener('mouseup', onUp);
+      window.removeEventListener('mousemove', onMove);
+    };
+  }, [dragging, timeFromEvent, onSeek]);
+
+  const pct = duration > 0 ? (time / duration) * 100 : 0;
+  const fmt = (t) => {
+    const total = Math.max(0, t);
+    const m = Math.floor(total / 60);
+    const s = Math.floor(total % 60);
+    const cs = Math.floor((total * 100) % 100);
+    return `${String(m).padStart(1, '0')}:${String(s).padStart(2, '0')}.${String(cs).padStart(2, '0')}`;
+  };
+
+  const mono = 'JetBrains Mono, ui-monospace, SFMono-Regular, monospace';
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 12,
+      padding: '8px 16px',
+      background: 'rgba(20,20,20,0.92)',
+      borderTop: '1px solid rgba(255,255,255,0.08)',
+      width: '100%',
+      maxWidth: 680,
+      alignSelf: 'center',
+
+      borderRadius: 8,
+      color: '#f6f4ef',
+      fontFamily: 'Inter, system-ui, sans-serif',
+      userSelect: 'none',
+      flexShrink: 0,
+    }}>
+      <IconButton onClick={onReset} title="Return to start (0)">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M3 2v10M12 2L5 7l7 5V2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round"/>
+        </svg>
+      </IconButton>
+      <IconButton onClick={onPlayPause} title="Play/pause (space)">
+        {playing ? (
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <rect x="3" y="2" width="3" height="10" fill="currentColor"/>
+            <rect x="8" y="2" width="3" height="10" fill="currentColor"/>
+          </svg>
+        ) : (
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M3 2l9 5-9 5V2z" fill="currentColor"/>
+          </svg>
+        )}
+      </IconButton>
+
+      {/* Current time: fixed width so it doesn't thrash */}
+      <div style={{
+        fontFamily: mono,
+        fontSize: 12,
+        fontVariantNumeric: 'tabular-nums',
+        width: 64, textAlign: 'right',
+        color: '#f6f4ef',
+      }}>
+        {fmt(time)}
+      </div>
+
+      {/* Scrub track */}
+      <div
+        ref={trackRef}
+        onMouseMove={onTrackMove}
+        onMouseLeave={onTrackLeave}
+        onMouseDown={onTrackDown}
+        style={{
+          flex: 1,
+          height: 22,
+          position: 'relative',
+          cursor: 'pointer',
+          display: 'flex', alignItems: 'center',
+        }}
+      >
+        <div style={{
+          position: 'absolute',
+          left: 0, right: 0, height: 4,
+          background: 'rgba(255,255,255,0.12)',
+          borderRadius: 2,
+        }}/>
+        <div style={{
+          position: 'absolute',
+          left: 0, width: `${pct}%`, height: 4,
+          background: 'oklch(72% 0.12 250)',
+          borderRadius: 2,
+        }}/>
+        <div style={{
+          position: 'absolute',
+          left: `${pct}%`, top: '50%',
+          width: 12, height: 12,
+          marginLeft: -6, marginTop: -6,
+          background: '#fff',
+          borderRadius: 6,
+          boxShadow: '0 2px 4px rgba(0,0,0,0.4)',
+        }}/>
+      </div>
+
+      {/* Duration: fixed width */}
+      <div style={{
+        fontFamily: mono,
+        fontSize: 12,
+        fontVariantNumeric: 'tabular-nums',
+        width: 64, textAlign: 'left',
+        color: 'rgba(246,244,239,0.55)',
+      }}>
+        {fmt(duration)}
+      </div>
+    </div>
+  );
+}
+
+function IconButton({ children, onClick, title }) {
+  const [hover, setHover] = React.useState(false);
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        width: 28, height: 28,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: hover ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.04)',
+        border: '1px solid rgba(255,255,255,0.1)',
+        borderRadius: 6,
+        color: '#f6f4ef',
+        cursor: 'pointer',
+        padding: 0,
+        transition: 'background 120ms',
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+
+Object.assign(window, {
+  Easing, interpolate, animate, clamp,
+  TimelineContext, useTime, useTimeline,
+  Sprite, SpriteContext, useSprite,
+  TextSprite, ImageSprite, RectSprite,
+  Stage, PlaybackBar,
+});
+
+
+</script>
+<script type="text/babel">
+// scenes.jsx — No Front Desk 60s explainer (v2)
+// Real flow: QR code or website → last name → check-in form → instant access codes.
+
+const COLORS = {
+  cream: '#f6f1e8',
+  paper: '#fbf7ef',
+  ink: '#1a1814',
+  ink2: '#2a2620',
+  muted: '#6b6458',
+  rule: '#d9d2c3',
+  accent: '#c2410c',     // terracotta
+  accent2: '#8c6f3f',    // brass
+  green: '#3f6b3a',
+};
+
+const FONT_DISPLAY = '"Fraunces", "Cormorant Garamond", "Times New Roman", serif';
+const FONT_SANS = '"Inter", "Helvetica Neue", system-ui, sans-serif';
+const FONT_MONO = '"JetBrains Mono", ui-monospace, monospace';
+
+const W = 1920;
+const H = 1080;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VO SCRIPT (used as captions; timed to scenes)
+// ─────────────────────────────────────────────────────────────────────────────
+// 0:00 "There's no one at the front desk."
+// 0:04 "And that's exactly the point."
+// 0:08 "Guests arrive on their own time."
+// 0:12 "They scan a QR code — or open a link."
+// 0:18 "Type a last name."
+// 0:22 "We find the reservation instantly."
+// 0:26 "A few quick details. ID. Signature. Done."
+// 0:34 "And just like that — they're in."
+// 0:38 "Door codes, Wi-Fi, instructions —"
+// 0:42 "delivered the moment they finish."
+// 0:46 "While you watch it happen, hands-free."
+// 0:52 "No lobby. No keys. No 2 a.m. phone calls."
+// 0:56 "No Front Desk."
+// 0:58 "nofrontdesk.com"
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Persistent caption bar (subtitle look, with timing per cue)
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Captions are timed to STAGE time. Audio plays at 1x until stage t=10,
+// then at 0.85x. Past 10s: stageT = 10 + (audioT - 10)/0.85
+const CUES = [
+  { t: 0.05, end: 1.45,  text: "There's no one at the front desk." },
+  { t: 1.85, end: 3.10,  text: "And that's exactly the point." },
+  { t: 3.45, end: 5.55,  text: "Guests arrive on their own time." },
+  { t: 5.85, end: 9.95,  text: "They scan a QR code, or open a link." },
+  // audio 10.25 → stage 10.29, 11.95 → stage 12.29
+  { t: 10.29, end: 12.29, text: "Type a last name." },
+  // audio 12.25→stage 12.65, 14.35→stage 15.12
+  { t: 12.65, end: 15.12, text: "We find the reservation instantly." },
+  // audio 14.70→stage 15.53, 17.75→stage 19.12
+  { t: 15.53, end: 19.12, text: "A few quick details. ID. Signature. Done." },
+  // audio 18.05→stage 19.47, 19.70→stage 21.41
+  { t: 19.47, end: 21.41, text: "And just like that, they're in." },
+  // audio 20.00→stage 21.76, 23.00→stage 25.29
+  { t: 21.76, end: 25.29, text: "Door codes, Wi-Fi, instructions —" },
+  // audio 23.30→stage 25.65, 25.40→stage 28.12
+  { t: 25.65, end: 28.12, text: "delivered the moment they finish." },
+  // audio 25.75→stage 28.53, 28.90→stage 32.24
+  { t: 28.53, end: 32.24, text: "You watch it happen, hands-free." },
+  // audio 29.20→stage 32.59, 30.75→stage 34.41
+  { t: 32.59, end: 34.41, text: "No lobby. No keys. No 2 a.m. phone calls." },
+  // audio 31.05→stage 34.76, 32.20→stage 36.12
+  { t: 34.76, end: 36.12, text: "No Front Desk." },
+  // audio 32.30→stage 36.24, 33.20→stage 37.29
+  { t: 36.24, end: 37.50, text: "nofrontdesk.com" },
+];
+
+function CaptionBar() {
+  const time = useTime();
+  const cue = CUES.find((c) => time >= c.t && time <= c.end);
+  if (!cue) return null;
+  const fadeIn = clamp((time - cue.t) / 0.25, 0, 1);
+  const fadeOut = 1 - clamp((time - (cue.end - 0.3)) / 0.3, 0, 1);
+  const opacity = Math.min(fadeIn, fadeOut);
+  return (
+    <div style={{
+      position: 'absolute', left: 0, right: 0, bottom: 70,
+      textAlign: 'center', zIndex: 70, pointerEvents: 'none',
+      opacity,
+    }}>
+      <div style={{
+        display: 'inline-block',
+        padding: '14px 28px',
+        background: 'rgba(10,10,10,0.78)',
+        backdropFilter: 'blur(6px)',
+        borderRadius: 6,
+        fontFamily: FONT_SANS,
+        fontSize: 28,
+        fontWeight: 500,
+        color: '#fff',
+        letterSpacing: '-0.005em',
+        maxWidth: 1400,
+        lineHeight: 1.3,
+      }}>
+        {cue.text}
+      </div>
+    </div>
+  );
+}
+
+function FilmGrain({ opacity = 0.04 }) {
+  return (
+    <div style={{
+      position: 'absolute', inset: 0, pointerEvents: 'none', opacity, zIndex: 50,
+      backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence baseFrequency='0.9' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.6'/></svg>")`,
+      mixBlendMode: 'multiply',
+    }} />
+  );
+}
+
+function Vignette() {
+  return (
+    <div style={{
+      position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 40,
+      background: 'radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.18) 100%)',
+    }} />
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCENE 1 — Empty front desk (0 → 6s)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function SceneOpen() {
+  const { localTime } = useSprite();
+  const bellShake = (() => {
+    const t = localTime - 1.4;
+    if (t < 0 || t > 1) return 0;
+    return Math.sin(t * 30) * (1 - t) * 6;
+  })();
+  const textP = clamp((localTime - 0.4) / 0.5, 0, 1);
+  const strikeP = clamp((localTime - 1.4) / 0.6, 0, 1);
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, background: COLORS.ink, color: COLORS.cream }}>
+      <div style={{
+        position: 'absolute', inset: 0,
+        background: 'radial-gradient(circle at 50% 60%, rgba(194,65,12,0.12), transparent 60%)',
+      }} />
+      <div style={{
+        position: 'absolute', left: 0, right: 0, bottom: 0, height: 380,
+        background: 'linear-gradient(180deg, #2a2620 0%, #1a1814 100%)',
+        borderTop: `1px solid ${COLORS.accent2}33`,
+      }} />
+      <div style={{
+        position: 'absolute', left: '50%', top: 560,
+        transform: `translate(-50%, 0) translateX(${bellShake}px)`,
+      }}>
+        <svg width="140" height="140" viewBox="0 0 140 140">
+          <ellipse cx="70" cy="118" rx="58" ry="6" fill={COLORS.accent2} opacity="0.4"/>
+          <path d="M14 110 Q70 70 126 110 L126 116 L14 116 Z" fill={COLORS.accent2}/>
+          <path d="M22 108 Q70 56 118 108" fill={COLORS.accent} opacity="0.95"/>
+          <path d="M22 108 Q70 56 118 108" fill="none" stroke={COLORS.accent2} strokeWidth="2"/>
+          <circle cx="70" cy="48" r="6" fill={COLORS.accent2}/>
+          <path d="M40 90 Q50 70 64 64" fill="none" stroke="#f6f1e855" strokeWidth="3" strokeLinecap="round"/>
+        </svg>
+      </div>
+      {bellShake !== 0 && [0, 1, 2].map(i => {
+        const waveT = clamp((localTime - 1.4 - i * 0.15) / 0.6, 0, 1);
+        return (
+          <div key={i} style={{
+            position: 'absolute', left: '50%', top: 590,
+            transform: `translate(-50%, -50%) scale(${1 + waveT * 2.5})`,
+            width: 160, height: 160, borderRadius: '50%',
+            border: `2px solid ${COLORS.accent}`,
+            opacity: (1 - waveT) * 0.5, pointerEvents: 'none',
+          }} />
+        );
+      })}
+      <div style={{
+        position: 'absolute', left: 0, right: 0, top: 180, textAlign: 'center',
+        opacity: textP * 0.7,
+        fontFamily: FONT_MONO, fontSize: 18, letterSpacing: '0.3em',
+        textTransform: 'uppercase', color: COLORS.accent2,
+      }}>
+        — and that's the point —
+      </div>
+      <div style={{
+        position: 'absolute', left: 0, right: 0, top: 240, textAlign: 'center',
+        opacity: textP, transform: `translateY(${(1 - textP) * 24}px)`,
+        fontFamily: FONT_DISPLAY, fontSize: 116, fontWeight: 400,
+        letterSpacing: '-0.02em', color: COLORS.cream, lineHeight: 1.05,
+      }}>
+        <div style={{ fontStyle: 'italic' }}>There's no one</div>
+        <div style={{ position: 'relative', display: 'inline-block', marginTop: 4 }}>
+          <span style={{ position: 'relative' }}>at the front desk.</span>
+          <div style={{
+            position: 'absolute', left: 0, top: '52%',
+            width: `${strikeP * 100}%`, height: 6,
+            background: COLORS.accent, transformOrigin: 'left',
+          }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCENE 2 — Arrival: door + QR placard (6 → 14s)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function SceneArrival() {
+  const { localTime } = useSprite();
+  const placardP = clamp((localTime - 0.1) / 0.4, 0, 1);
+  // Phone slides up
+  const phoneP = clamp((localTime - 0.7) / 0.4, 0, 1);
+  // Scan beam
+  const scanP = clamp((localTime - 1.4) / 1.2, 0, 1);
+  const lockedInP = clamp((localTime - 2.8) / 0.4, 0, 1);
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, background: COLORS.cream }}>
+      <div style={{
+        position: 'absolute', left: 60, top: 60,
+        fontFamily: FONT_MONO, fontSize: 14, letterSpacing: '0.25em',
+        textTransform: 'uppercase', color: COLORS.muted,
+      }}>
+        01 · Arrive
+      </div>
+
+      {/* Wood-tone wall */}
+      <div style={{
+        position: 'absolute', left: 0, top: 0, right: 0, bottom: 0,
+        background: 'linear-gradient(180deg, #efe7d6 0%, #e6dcc6 100%)',
+      }} />
+
+      {/* Door */}
+      <div style={{
+        position: 'absolute', left: 880, top: 200, width: 380, height: 720,
+        background: 'linear-gradient(180deg, #4a3826 0%, #2f2417 100%)',
+        borderRadius: '6px 6px 0 0',
+        boxShadow: 'inset 0 0 0 8px #5b4530, 0 30px 60px rgba(0,0,0,0.18)',
+      }}>
+        {/* Door panels */}
+        <div style={{ position: 'absolute', left: 30, top: 60, right: 30, height: 280, border: '3px solid #5b4530', borderRadius: 4 }} />
+        <div style={{ position: 'absolute', left: 30, top: 380, right: 30, height: 280, border: '3px solid #5b4530', borderRadius: 4 }} />
+        {/* Knob */}
+        <div style={{ position: 'absolute', right: 30, top: 380, width: 18, height: 18, borderRadius: '50%', background: COLORS.accent2 }} />
+        {/* Room number plate */}
+        <div style={{
+          position: 'absolute', top: 30, left: '50%', transform: 'translateX(-50%)',
+          padding: '6px 16px', background: COLORS.accent2, color: COLORS.ink,
+          fontFamily: FONT_MONO, fontSize: 13, letterSpacing: '0.2em',
+        }}>
+          304
+        </div>
+      </div>
+
+      {/* QR Placard mounted on wall, left of door */}
+      <div style={{
+        position: 'absolute', left: 380, top: 320, width: 380, height: 520,
+        background: '#fff',
+        border: `1px solid ${COLORS.rule}`,
+        borderRadius: 6,
+        padding: '36px 32px',
+        boxShadow: '0 24px 60px rgba(0,0,0,0.18)',
+        opacity: placardP,
+        transform: `translateY(${(1 - placardP) * 16}px)`,
+      }}>
+        <div style={{
+          fontFamily: FONT_DISPLAY, fontSize: 30, fontStyle: 'italic',
+          color: COLORS.ink, letterSpacing: '-0.01em',
+        }}>
+          Cedar House
+        </div>
+        <div style={{
+          fontFamily: FONT_MONO, fontSize: 11, letterSpacing: '0.25em',
+          textTransform: 'uppercase', color: COLORS.muted, marginTop: 6, marginBottom: 24,
+        }}>
+          Welcome — check in here
+        </div>
+
+        {/* QR */}
+        <div style={{
+          width: 280, height: 280, position: 'relative', margin: '0 auto',
+          background: '#fff', padding: 12,
+          border: `1px solid ${COLORS.rule}`,
+        }}>
+          <FakeQR size={256} />
+          {/* Scan beam */}
+          {scanP > 0 && scanP < 1 && (
+            <div style={{
+              position: 'absolute', left: 12, right: 12, top: 12 + scanP * 256,
+              height: 3,
+              background: `linear-gradient(90deg, transparent, ${COLORS.accent}, transparent)`,
+              boxShadow: `0 0 18px ${COLORS.accent}`,
+            }} />
+          )}
+        </div>
+
+        <div style={{
+          marginTop: 20, textAlign: 'center',
+          fontFamily: FONT_SANS, fontSize: 16, color: COLORS.muted,
+        }}>
+          or visit <span style={{ color: COLORS.ink, fontWeight: 600 }}>nofrontdesk.com/cedar</span>
+        </div>
+      </div>
+
+      {/* Phone scanning the QR */}
+      <div style={{
+        position: 'absolute', left: 200, top: 540,
+        width: 280, height: 560,
+        opacity: phoneP,
+        transform: `translateY(${(1 - phoneP) * 80}px) rotate(-8deg)`,
+      }}>
+        <div style={{
+          width: '100%', height: '100%',
+          background: COLORS.ink,
+          borderRadius: 32,
+          padding: 10,
+          boxShadow: '0 30px 80px rgba(0,0,0,0.4)',
+        }}>
+          <div style={{
+            width: '100%', height: '100%',
+            background: '#0a0a0a',
+            borderRadius: 24,
+            position: 'relative', overflow: 'hidden',
+            display: 'flex', flexDirection: 'column',
+          }}>
+            {/* Camera UI */}
+            <div style={{ flex: 1, position: 'relative',
+              background: 'linear-gradient(180deg, #2a2620, #1a1814)',
+            }}>
+              {/* Crosshair viewfinder */}
+              <div style={{
+                position: 'absolute', left: '50%', top: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: 180, height: 180,
+              }}>
+                {/* corners */}
+                {[
+                  { top: 0, left: 0, br: '0 0 0 0', borders: { borderTop: `3px solid ${lockedInP > 0.5 ? COLORS.green : '#fff'}`, borderLeft: `3px solid ${lockedInP > 0.5 ? COLORS.green : '#fff'}` } },
+                  { top: 0, right: 0, br: '0 0 0 0', borders: { borderTop: `3px solid ${lockedInP > 0.5 ? COLORS.green : '#fff'}`, borderRight: `3px solid ${lockedInP > 0.5 ? COLORS.green : '#fff'}` } },
+                  { bottom: 0, left: 0, br: '0 0 0 0', borders: { borderBottom: `3px solid ${lockedInP > 0.5 ? COLORS.green : '#fff'}`, borderLeft: `3px solid ${lockedInP > 0.5 ? COLORS.green : '#fff'}` } },
+                  { bottom: 0, right: 0, br: '0 0 0 0', borders: { borderBottom: `3px solid ${lockedInP > 0.5 ? COLORS.green : '#fff'}`, borderRight: `3px solid ${lockedInP > 0.5 ? COLORS.green : '#fff'}` } },
+                ].map((c, i) => (
+                  <div key={i} style={{ position: 'absolute', width: 36, height: 36, ...c, ...c.borders }} />
+                ))}
+                {lockedInP > 0.5 && (
+                  <div style={{
+                    position: 'absolute', left: 0, right: 0, top: '50%', textAlign: 'center',
+                    transform: 'translateY(-50%)',
+                    color: COLORS.green, fontFamily: FONT_MONO, fontSize: 12, letterSpacing: '0.2em',
+                    background: 'rgba(0,0,0,0.6)', padding: '8px 0',
+                  }}>
+                    LINK FOUND
+                  </div>
+                )}
+              </div>
+            </div>
+            <div style={{
+              padding: 12, color: '#fff',
+              fontFamily: FONT_MONO, fontSize: 11, letterSpacing: '0.15em',
+              textAlign: 'center',
+            }}>
+              ◉ CAMERA · QR
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Beam line from phone to QR */}
+      {scanP > 0.05 && scanP < 0.95 && (
+        <svg style={{
+          position: 'absolute', left: 0, top: 0, width: '100%', height: '100%',
+          pointerEvents: 'none', opacity: scanP < 0.5 ? scanP * 2 : (1 - scanP) * 2,
+        }}>
+          <line x1="380" y1="640" x2="510" y2="540"
+                stroke={COLORS.accent} strokeWidth="2" strokeDasharray="4 6" />
+        </svg>
+      )}
+    </div>
+  );
+}
+
+function FakeQR({ size = 200 }) {
+  // 21x21 deterministic-ish pattern
+  const N = 21;
+  const cell = size / N;
+  const cells = [];
+  // seed with corners
+  const isCorner = (r, c) =>
+    (r < 7 && c < 7) || (r < 7 && c >= N - 7) || (r >= N - 7 && c < 7);
+  for (let r = 0; r < N; r++) {
+    for (let c = 0; c < N; c++) {
+      if (isCorner(r, c)) continue;
+      const v = ((r * 7 + c * 13 + (r ^ c) * 3) % 5) === 0;
+      if (v) cells.push({ r, c });
+    }
+  }
+  const finder = (r0, c0) => (
+    <g>
+      <rect x={c0 * cell} y={r0 * cell} width={cell * 7} height={cell * 7} fill={COLORS.ink}/>
+      <rect x={(c0 + 1) * cell} y={(r0 + 1) * cell} width={cell * 5} height={cell * 5} fill="#fff"/>
+      <rect x={(c0 + 2) * cell} y={(r0 + 2) * cell} width={cell * 3} height={cell * 3} fill={COLORS.ink}/>
+    </g>
+  );
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      {finder(0, 0)}
+      {finder(0, N - 7)}
+      {finder(N - 7, 0)}
+      {cells.map((p, i) => (
+        <rect key={i} x={p.c * cell} y={p.r * cell} width={cell} height={cell} fill={COLORS.ink}/>
+      ))}
+    </svg>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCENE 3 — Last name + reservation found (14 → 26s)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function SceneLastName() {
+  const { localTime } = useSprite();
+  const screenP = clamp(localTime / 0.4, 0, 1);
+
+  // Type "SORENSEN" character by character
+  const word = 'Sorensen';
+  const typeStart = 0.6;
+  const typePerChar = 0.12;
+  const charsRevealed = clamp(Math.floor((localTime - typeStart) / typePerChar), 0, word.length);
+  const typed = word.slice(0, charsRevealed);
+  const showCursor = localTime > typeStart && Math.floor(localTime * 2) % 2 === 0;
+
+  // After typing complete, find reservation
+  const findStart = typeStart + word.length * typePerChar + 0.15;
+  const findP = clamp((localTime - findStart) / 0.3, 0, 1);
+  const cardP = clamp((localTime - findStart - 0.3) / 0.4, 0, 1);
+
+  // Continue button highlights at end
+  const continueP = clamp((localTime - findStart - 1.0) / 0.4, 0, 1);
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, background: COLORS.paper }}>
+      <div style={{
+        position: 'absolute', left: 60, top: 60,
+        fontFamily: FONT_MONO, fontSize: 14, letterSpacing: '0.25em',
+        textTransform: 'uppercase', color: COLORS.muted,
+      }}>
+        02 · Identify
+      </div>
+
+      {/* Browser frame */}
+      <div style={{
+        position: 'absolute', left: 240, top: 130, right: 240, bottom: 130,
+        background: '#fff',
+        border: `1px solid ${COLORS.rule}`,
+        borderRadius: 12,
+        boxShadow: '0 30px 80px rgba(26,24,20,0.18)',
+        overflow: 'hidden',
+        opacity: screenP,
+        transform: `translateY(${(1 - screenP) * 16}px)`,
+      }}>
+        {/* URL bar */}
+        <div style={{
+          height: 48, borderBottom: `1px solid ${COLORS.rule}`,
+          display: 'flex', alignItems: 'center', gap: 14, padding: '0 18px',
+          background: COLORS.cream,
+        }}>
+          <div style={{ display: 'flex', gap: 7 }}>
+            <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#e15a4d' }}/>
+            <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#e3b441' }}/>
+            <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#5fb35f' }}/>
+          </div>
+          <div style={{
+            flex: 1, height: 28,
+            background: '#fff',
+            border: `1px solid ${COLORS.rule}`,
+            borderRadius: 6, padding: '0 14px',
+            display: 'flex', alignItems: 'center', gap: 8,
+            fontFamily: FONT_MONO, fontSize: 13, color: COLORS.muted,
+          }}>
+            <span style={{ color: COLORS.green }}>●</span>
+            nofrontdesk.com/cedar/check-in
+          </div>
+        </div>
+
+        {/* Page content */}
+        <div style={{ padding: '60px 80px', height: 'calc(100% - 48px)', display: 'flex', flexDirection: 'column' }}>
+          <div style={{
+            fontFamily: FONT_MONO, fontSize: 12, letterSpacing: '0.25em',
+            textTransform: 'uppercase', color: COLORS.muted, marginBottom: 12,
+          }}>
+            Cedar House · Self check-in
+          </div>
+          <div style={{
+            fontFamily: FONT_DISPLAY, fontSize: 80, fontWeight: 400,
+            color: COLORS.ink, letterSpacing: '-0.02em', lineHeight: 1.0,
+            marginBottom: 12,
+          }}>
+            Welcome.
+          </div>
+          <div style={{ fontFamily: FONT_SANS, fontSize: 22, color: COLORS.muted, marginBottom: 56 }}>
+            Enter your last name to find your reservation.
+          </div>
+
+          {/* Input */}
+          <div>
+            <div style={{
+              fontFamily: FONT_MONO, fontSize: 11, letterSpacing: '0.2em',
+              textTransform: 'uppercase', color: COLORS.muted, marginBottom: 10,
+            }}>
+              Last name
+            </div>
+            <div style={{
+              height: 84, borderBottom: `2px solid ${COLORS.ink}`,
+              display: 'flex', alignItems: 'center',
+              fontFamily: FONT_DISPLAY, fontSize: 56, color: COLORS.ink,
+              fontWeight: 400, letterSpacing: '-0.01em',
+            }}>
+              {typed}
+              {showCursor && charsRevealed < word.length && (
+                <span style={{
+                  display: 'inline-block', width: 3, height: 56,
+                  background: COLORS.accent, marginLeft: 6,
+                }} />
+              )}
+            </div>
+          </div>
+
+          {/* Reservation found card */}
+          <div style={{
+            marginTop: 40,
+            opacity: cardP,
+            transform: `translateY(${(1 - cardP) * 16}px)`,
+          }}>
+            <div style={{
+              padding: '24px 28px',
+              background: COLORS.cream,
+              border: `1px solid ${COLORS.accent}`,
+              borderLeft: `4px solid ${COLORS.accent}`,
+              borderRadius: 6,
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            }}>
+              <div>
+                <div style={{
+                  fontFamily: FONT_MONO, fontSize: 11, letterSpacing: '0.2em',
+                  textTransform: 'uppercase', color: COLORS.accent, marginBottom: 8,
+                }}>
+                  ✓ Reservation found
+                </div>
+                <div style={{ fontFamily: FONT_DISPLAY, fontSize: 36, color: COLORS.ink, letterSpacing: '-0.01em' }}>
+                  Maya Sorensen
+                </div>
+                <div style={{ fontFamily: FONT_SANS, fontSize: 17, color: COLORS.muted, marginTop: 4 }}>
+                  Cedar House · Room 304 · Apr 25 → Apr 27 · 2 guests
+                </div>
+              </div>
+              <div style={{
+                padding: '14px 24px',
+                background: continueP > 0.5 ? COLORS.accent : COLORS.ink,
+                color: '#fff', borderRadius: 6,
+                fontFamily: FONT_SANS, fontSize: 17, fontWeight: 600,
+                transition: 'background 0.3s',
+                transform: `scale(${1 + (continueP > 0.5 ? Math.sin(localTime * 4) * 0.02 : 0)})`,
+              }}>
+                Continue →
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCENE 4 — Check-in form (26 → 38s)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function FormField({ label, value, t, localTime, mono = false, multi = false }) {
+  const op = clamp((localTime - t) / 0.25, 0, 1);
+  const fillP = clamp((localTime - t - 0.15) / 0.3, 0, 1);
+  return (
+    <div style={{
+      opacity: op, transform: `translateY(${(1 - op) * 8}px)`, marginBottom: 22,
+    }}>
+      <div style={{
+        fontFamily: FONT_MONO, fontSize: 10, letterSpacing: '0.2em',
+        textTransform: 'uppercase', color: COLORS.muted, marginBottom: 8,
+      }}>
+        {label}
+      </div>
+      <div style={{
+        minHeight: multi ? 60 : 38,
+        borderBottom: `1.5px solid ${COLORS.ink}`,
+        fontFamily: mono ? FONT_MONO : FONT_SANS,
+        fontSize: 20, color: COLORS.ink, fontWeight: 500,
+        paddingBottom: 6,
+        display: 'flex', alignItems: multi ? 'flex-start' : 'center',
+        whiteSpace: 'nowrap', overflow: 'hidden',
+      }}>
+        <span style={{ width: `${fillP * 100}%`, overflow: 'hidden', whiteSpace: 'nowrap' }}>
+          {value}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function SceneForm() {
+  const { localTime } = useSprite();
+  const headP = clamp(localTime / 0.5, 0, 1);
+
+  // Signature stroke
+  const sigStart = 3.6;
+  const sigP = clamp((localTime - sigStart) / 0.8, 0, 1);
+
+  const submitP = clamp((localTime - 4.7) / 0.3, 0, 1);
+  const flashP = clamp((localTime - 5.0) / 0.3, 0, 1);
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, background: COLORS.cream }}>
+      <div style={{
+        position: 'absolute', left: 60, top: 60,
+        fontFamily: FONT_MONO, fontSize: 14, letterSpacing: '0.25em',
+        textTransform: 'uppercase', color: COLORS.muted,
+      }}>
+        03 · A few details
+      </div>
+      <div style={{
+        position: 'absolute', left: 60, top: 110,
+        fontFamily: FONT_DISPLAY, fontSize: 80, fontWeight: 400,
+        color: COLORS.ink, letterSpacing: '-0.02em', opacity: headP,
+      }}>
+        Almost there.
+      </div>
+
+      {/* Form column */}
+      <div style={{
+        position: 'absolute', left: 240, top: 280, width: 720,
+      }}>
+        <FormField label="Email"           value="maya.sorensen@hey.com" mono t={0.4} localTime={localTime}/>
+        <FormField label="Phone"           value="+1 (415) 555-0142" mono t={0.9} localTime={localTime}/>
+        <FormField label="Adults · Kids"   value="2 · 0" mono t={1.3} localTime={localTime}/>
+        <FormField label="ETA"             value="4:30 PM" t={1.7} localTime={localTime}/>
+        <FormField label="Special requests" value="Crib in room if possible. Quiet floor preferred." multi t={2.1} localTime={localTime}/>
+      </div>
+
+      {/* Right column: ID upload + signature */}
+      <div style={{
+        position: 'absolute', right: 240, top: 280, width: 620,
+      }}>
+        {/* ID card */}
+        <div style={{
+          opacity: clamp((localTime - 2.6) / 0.3, 0, 1),
+          transform: `translateY(${(1 - clamp((localTime - 2.6) / 0.3, 0, 1)) * 12}px)`,
+          marginBottom: 36,
+        }}>
+          <div style={{
+            fontFamily: FONT_MONO, fontSize: 10, letterSpacing: '0.2em',
+            textTransform: 'uppercase', color: COLORS.muted, marginBottom: 10,
+          }}>
+            Photo ID
+          </div>
+          <div style={{
+            height: 200,
+            background: '#fff', borderRadius: 6,
+            border: `1px solid ${COLORS.rule}`,
+            display: 'flex', alignItems: 'center',
+            padding: 18, gap: 18,
+            boxShadow: '0 8px 24px rgba(26,24,20,0.06)',
+          }}>
+            {/* avatar block */}
+            <div style={{
+              width: 130, height: 165,
+              background: 'repeating-linear-gradient(135deg, #e9e6df 0 8px, #dcd8cf 8px 16px)',
+              borderRadius: 4,
+            }}/>
+            <div style={{ flex: 1 }}>
+              <div style={{
+                fontFamily: FONT_MONO, fontSize: 9, letterSpacing: '0.25em',
+                color: COLORS.muted, textTransform: 'uppercase', marginBottom: 8,
+              }}>
+                State of California · Driver License
+              </div>
+              <div style={{ fontFamily: FONT_DISPLAY, fontSize: 26, color: COLORS.ink }}>
+                Sorensen, Maya R.
+              </div>
+              <div style={{ fontFamily: FONT_MONO, fontSize: 12, color: COLORS.muted, marginTop: 8 }}>
+                DL D2839740 · DOB 06/14/1991<br/>EXP 06/14/2029
+              </div>
+              {clamp((localTime - 3.0) / 0.3, 0, 1) > 0 && (
+                <div style={{
+                  marginTop: 10,
+                  fontFamily: FONT_MONO, fontSize: 11, color: COLORS.green,
+                  letterSpacing: '0.15em',
+                  opacity: clamp((localTime - 3.0) / 0.3, 0, 1),
+                }}>
+                  ✓ VERIFIED
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Signature box */}
+        <div style={{
+          opacity: clamp((localTime - 3.4) / 0.3, 0, 1),
+        }}>
+          <div style={{
+            fontFamily: FONT_MONO, fontSize: 10, letterSpacing: '0.2em',
+            textTransform: 'uppercase', color: COLORS.muted, marginBottom: 10,
+          }}>
+            Signature
+          </div>
+          <div style={{
+            height: 180,
+            background: '#fff',
+            border: `1px solid ${COLORS.rule}`,
+            borderRadius: 6,
+            position: 'relative',
+            boxShadow: '0 8px 24px rgba(26,24,20,0.06)',
+          }}>
+            {/* sig path */}
+            <svg width="100%" height="100%" viewBox="0 0 580 180" style={{ position: 'absolute', inset: 0 }}>
+              <path
+                d="M 50 110 Q 80 70, 110 100 T 170 100 Q 200 60, 230 110 Q 260 150, 290 105 T 360 95 Q 400 85, 430 130 Q 470 150, 500 100"
+                fill="none" stroke={COLORS.ink} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
+                strokeDasharray="800"
+                strokeDashoffset={(1 - sigP) * 800}
+              />
+              <path d="M 480 105 q 18 -8 30 -2"
+                fill="none" stroke={COLORS.ink} strokeWidth="3" strokeLinecap="round"
+                strokeDasharray="80"
+                strokeDashoffset={(1 - clamp((sigP - 0.85) / 0.15, 0, 1)) * 80}/>
+            </svg>
+            <div style={{
+              position: 'absolute', left: 24, bottom: 18, right: 24,
+              borderTop: `1px solid ${COLORS.rule}`, paddingTop: 8,
+              fontFamily: FONT_MONO, fontSize: 11, color: COLORS.muted, letterSpacing: '0.1em',
+            }}>
+              X — sign with finger or trackpad
+            </div>
+          </div>
+        </div>
+
+        {/* Submit button */}
+        <div style={{
+          marginTop: 36,
+          padding: '20px 32px',
+          background: submitP > 0.5 ? COLORS.green : COLORS.ink,
+          color: '#fff',
+          borderRadius: 6,
+          fontFamily: FONT_SANS, fontSize: 22, fontWeight: 600,
+          textAlign: 'center',
+          opacity: clamp((localTime - 4.6) / 0.3, 0, 1),
+          transform: `scale(${submitP > 0.5 ? 1.02 : 1})`,
+          transition: 'background 0.3s, transform 0.3s',
+          boxShadow: flashP > 0
+            ? `0 0 ${flashP * 60}px ${COLORS.green}`
+            : '0 8px 20px rgba(26,24,20,0.15)',
+        }}>
+          {submitP > 0.5 ? '✓  Submitted' : 'Complete check-in'}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCENE 5 — Access codes delivered (38 → 46s)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function SceneAccessCodes() {
+  const { localTime } = useSprite();
+
+  const headP = clamp(localTime / 0.5, 0, 1);
+  const phoneP = clamp((localTime - 0.2) / 0.4, 0, 1);
+
+  // Stagger: door code → wifi → instructions
+  const cards = [
+    { t: 0.8, kind: 'door',  label: 'Door code',     value: '7 2 4 9',         sub: 'Room 304 · valid Apr 25, 4 PM → Apr 27, 11 AM' },
+    { t: 1.5, kind: 'wifi',  label: 'Wi-Fi',         value: 'cedar-sky-2840',  sub: 'Network: Cedar Guest · 5 GHz' },
+    { t: 2.2, kind: 'note',  label: 'House notes',   value: 'Coffee in cabinet · Pool open until 10', sub: '' },
+  ];
+
+  const checkP = clamp((localTime - 3.4) / 0.4, 0, 1);
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, background: COLORS.ink, color: COLORS.cream }}>
+      <div style={{
+        position: 'absolute', left: 60, top: 60,
+        fontFamily: FONT_MONO, fontSize: 14, letterSpacing: '0.25em',
+        textTransform: 'uppercase', color: COLORS.accent2,
+      }}>
+        04 · You're in
+      </div>
+
+      <div style={{
+        position: 'absolute', left: 60, top: 110, right: 60,
+        fontFamily: FONT_DISPLAY, fontSize: 92, fontWeight: 400,
+        letterSpacing: '-0.02em', lineHeight: 1.0, opacity: headP,
+      }}>
+        Everything you need —<br/>
+        <em style={{ color: COLORS.accent }}>delivered.</em>
+      </div>
+
+      {/* Phone with confirmation, left */}
+      <div style={{
+        position: 'absolute', left: 200, top: 380, width: 380, height: 580,
+        background: COLORS.ink2, borderRadius: 44, padding: 12,
+        border: `1px solid ${COLORS.accent2}33`,
+        boxShadow: '0 30px 80px rgba(0,0,0,0.5)',
+        opacity: phoneP,
+        transform: `translateY(${(1 - phoneP) * 24}px)`,
+      }}>
+        <div style={{
+          width: '100%', height: '100%',
+          background: COLORS.paper, borderRadius: 32, padding: '32px 24px',
+          color: COLORS.ink, fontFamily: FONT_SANS,
+        }}>
+          <div style={{
+            fontFamily: FONT_MONO, fontSize: 11, letterSpacing: '0.2em',
+            textTransform: 'uppercase', color: COLORS.muted,
+          }}>
+            ✉ Cedar House · just now
+          </div>
+          <div style={{
+            marginTop: 18,
+            fontFamily: FONT_DISPLAY, fontSize: 32, fontStyle: 'italic',
+            color: COLORS.ink, letterSpacing: '-0.01em',
+          }}>
+            Welcome, Maya.
+          </div>
+          <div style={{ fontSize: 15, color: COLORS.ink, lineHeight: 1.5, marginTop: 12 }}>
+            You're checked in to <strong>Room 304</strong>. Save this thread — your codes and house notes are below.
+          </div>
+
+          {/* Door code highlight */}
+          <div style={{
+            marginTop: 28,
+            background: COLORS.ink, color: COLORS.cream,
+            borderRadius: 12, padding: '22px 0',
+            display: 'flex', justifyContent: 'center', gap: 14,
+            fontFamily: FONT_MONO, fontWeight: 600, fontSize: 46,
+          }}>
+            {['7', '2', '4', '9'].map((c, i) => (
+              <span key={i} style={{
+                opacity: clamp((localTime - 0.8 - i * 0.12) / 0.2, 0, 1),
+                color: COLORS.accent,
+              }}>{c}</span>
+            ))}
+          </div>
+          <div style={{
+            marginTop: 14,
+            fontFamily: FONT_MONO, fontSize: 11, color: COLORS.muted,
+            textAlign: 'center', letterSpacing: '0.15em',
+          }}>
+            DOOR · ROOM 304
+          </div>
+        </div>
+      </div>
+
+      {/* Stack of info cards, right */}
+      <div style={{
+        position: 'absolute', right: 200, top: 380, width: 720,
+        display: 'flex', flexDirection: 'column', gap: 18,
+      }}>
+        {cards.map((c, i) => {
+          const op = clamp((localTime - c.t) / 0.5, 0, 1);
+          return (
+            <div key={i} style={{
+              opacity: op, transform: `translateX(${(1 - op) * 24}px)`,
+              padding: '24px 28px',
+              background: 'rgba(246,241,232,0.04)',
+              border: `1px solid ${COLORS.accent2}33`,
+              borderLeft: `4px solid ${COLORS.accent}`,
+              borderRadius: 6,
+              display: 'flex', alignItems: 'center', gap: 24,
+            }}>
+              <div style={{
+                width: 72, height: 72, borderRadius: 8,
+                background: COLORS.accent + '22',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 32, color: COLORS.accent,
+              }}>
+                {c.kind === 'door' && (
+                  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="6" y="11" width="12" height="10" rx="1.5"/>
+                    <path d="M8 11V7a4 4 0 018 0v4"/>
+                    <circle cx="12" cy="16" r="1.5" fill="currentColor"/>
+                  </svg>
+                )}
+                {c.kind === 'wifi' && (
+                  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <path d="M3 9q9-7 18 0"/>
+                    <path d="M6 13q6-5 12 0"/>
+                    <path d="M9 17q3-3 6 0"/>
+                    <circle cx="12" cy="20" r="1" fill="currentColor"/>
+                  </svg>
+                )}
+                {c.kind === 'note' && (
+                  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <path d="M5 4h11l4 4v12H5z"/>
+                    <line x1="9" y1="11" x2="16" y2="11"/>
+                    <line x1="9" y1="15" x2="14" y2="15"/>
+                  </svg>
+                )}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{
+                  fontFamily: FONT_MONO, fontSize: 11, letterSpacing: '0.2em',
+                  textTransform: 'uppercase', color: COLORS.accent2, marginBottom: 6,
+                }}>
+                  {c.label}
+                </div>
+                <div style={{
+                  fontFamily: c.kind === 'note' ? FONT_DISPLAY : FONT_MONO,
+                  fontSize: c.kind === 'note' ? 22 : 32,
+                  color: COLORS.cream, fontWeight: c.kind === 'note' ? 400 : 600,
+                  fontStyle: c.kind === 'note' ? 'italic' : 'normal',
+                  letterSpacing: c.kind === 'note' ? '-0.01em' : '0.05em',
+                }}>
+                  {c.value}
+                </div>
+                {c.sub && (
+                  <div style={{ fontFamily: FONT_SANS, fontSize: 14, color: COLORS.muted, marginTop: 6 }}>
+                    {c.sub}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Final stamp */}
+        <div style={{
+          marginTop: 14,
+          opacity: checkP, transform: `scale(${0.9 + checkP * 0.1})`,
+          display: 'flex', alignItems: 'center', gap: 14,
+          fontFamily: FONT_DISPLAY, fontSize: 36, color: COLORS.green,
+          fontStyle: 'italic',
+        }}>
+          <div style={{
+            width: 44, height: 44, borderRadius: '50%',
+            border: `2px solid ${COLORS.green}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 20,
+          }}>✓</div>
+          Checked in. Doors unlocked.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCENE 6 — Operator dashboard (46 → 54s)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function SceneDashboard() {
+  const { localTime } = useSprite();
+  const headP = clamp(localTime / 0.5, 0, 1);
+
+  const events = [
+    { t: 0.8, time: '4:32 PM', text: 'Sorensen · Room 304',  status: 'Checked in',     color: COLORS.green },
+    { t: 1.6, time: '2:11 PM', text: 'Patel · Suite 12',      status: 'Checked in',     color: COLORS.green },
+    { t: 2.2, time: '1:58 PM', text: 'Okafor · Room 207',     status: 'Form complete',  color: COLORS.accent },
+    { t: 2.8, time: '12:40 PM',text: 'Lindqvist · Room 110',  status: 'Code sent',      color: COLORS.accent2 },
+    { t: 3.4, time: '11:15 AM',text: 'Tanaka · Room 415',     status: 'Checked in',     color: COLORS.green },
+  ];
+
+  const cP = clamp((localTime - 0.5) / 1.8, 0, 1);
+  const stats = [
+    { k: 'Today',          to: 14, format: (v) => Math.round(v) + ' check-ins' },
+    { k: 'Time saved',     to: 6,  format: (v) => Math.round(v) + ' hrs', accent: true },
+    { k: 'Avg. completion',to: 92, format: (v) => Math.round(v) + ' sec' },
+  ];
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, background: COLORS.cream }}>
+      <div style={{
+        position: 'absolute', left: 60, top: 60,
+        fontFamily: FONT_MONO, fontSize: 14, letterSpacing: '0.25em',
+        textTransform: 'uppercase', color: COLORS.muted,
+      }}>
+        05 · Run the place
+      </div>
+      <div style={{
+        position: 'absolute', left: 60, top: 110, right: 60,
+        fontFamily: FONT_DISPLAY, fontSize: 88, fontWeight: 400,
+        color: COLORS.ink, letterSpacing: '-0.02em', lineHeight: 1.0,
+        opacity: headP,
+      }}>
+        You watch it happen. <em style={{ color: COLORS.accent, fontStyle: 'italic' }}>Hands free.</em>
+      </div>
+
+      {/* Stat row */}
+      <div style={{
+        position: 'absolute', left: 60, top: 290, right: 60,
+        display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 32,
+      }}>
+        {stats.map((s, i) => (
+          <div key={i} style={{
+            borderTop: `1px solid ${s.accent ? COLORS.accent : COLORS.rule}`,
+            paddingTop: 16,
+            opacity: clamp((localTime - 0.5 - i * 0.15) / 0.5, 0, 1),
+          }}>
+            <div style={{
+              fontFamily: FONT_MONO, fontSize: 12, letterSpacing: '0.2em',
+              textTransform: 'uppercase', color: s.accent ? COLORS.accent : COLORS.muted,
+              marginBottom: 12,
+            }}>
+              {s.k}
+            </div>
+            <div style={{
+              fontFamily: FONT_DISPLAY, fontSize: 76, fontWeight: 400,
+              color: s.accent ? COLORS.accent : COLORS.ink,
+              letterSpacing: '-0.03em', lineHeight: 1.0,
+              fontVariantNumeric: 'tabular-nums',
+            }}>
+              <Counter from={0} to={s.to} progress={cP} format={s.format}/>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Activity table */}
+      <div style={{
+        position: 'absolute', left: 60, right: 60, top: 530, bottom: 60,
+        background: '#fff', border: `1px solid ${COLORS.rule}`, borderRadius: 8,
+        padding: '24px 36px',
+        opacity: clamp((localTime - 0.5) / 0.5, 0, 1),
+      }}>
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+          marginBottom: 18,
+        }}>
+          <div style={{
+            fontFamily: FONT_MONO, fontSize: 12, letterSpacing: '0.2em',
+            textTransform: 'uppercase', color: COLORS.muted,
+          }}>
+            ◉ Live activity
+          </div>
+          <div style={{ fontFamily: FONT_MONO, fontSize: 12, color: COLORS.muted, letterSpacing: '0.15em' }}>
+            April 25
+          </div>
+        </div>
+        {events.map((e, i) => {
+          const op = clamp((localTime - e.t) / 0.4, 0, 1);
+          return (
+            <div key={i} style={{
+              display: 'grid', gridTemplateColumns: '120px 1fr 220px 32px',
+              padding: '16px 0', borderBottom: i < events.length - 1 ? `1px solid ${COLORS.rule}` : 'none',
+              alignItems: 'center', gap: 24,
+              opacity: op, transform: `translateY(${(1 - op) * 6}px)`,
+            }}>
+              <div style={{ fontFamily: FONT_MONO, fontSize: 14, color: COLORS.muted }}>{e.time}</div>
+              <div style={{ fontFamily: FONT_SANS, fontSize: 19, color: COLORS.ink, fontWeight: 500 }}>{e.text}</div>
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                fontFamily: FONT_MONO, fontSize: 12, letterSpacing: '0.15em',
+                textTransform: 'uppercase', color: e.color,
+              }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: e.color }}/>
+                {e.status}
+              </div>
+              <div style={{ fontFamily: FONT_MONO, fontSize: 18, color: COLORS.muted, textAlign: 'right' }}>›</div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function Counter({ from, to, progress, format = (v) => Math.round(v).toString() }) {
+  const v = from + (to - from) * Easing.easeOutCubic(clamp(progress, 0, 1));
+  return <span>{format(v)}</span>;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCENE 7 — Closing logo (54 → 60s)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function SceneClose() {
+  const { localTime } = useSprite();
+  const ringP = clamp(localTime / 0.6, 0, 1);
+  const wordP = clamp((localTime - 0.3) / 0.5, 0, 1);
+  const tagP = clamp((localTime - 0.9) / 0.5, 0, 1);
+  const urlP = clamp((localTime - 1.5) / 0.5, 0, 1);
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, background: COLORS.cream }}>
+      <div style={{
+        position: 'absolute', left: 0, right: 0, top: 280, textAlign: 'center',
+      }}>
+        <div style={{ display: 'inline-block', position: 'relative', marginBottom: 36 }}>
+          <svg width="120" height="120" viewBox="0 0 120 120" style={{
+            transform: `scale(${ringP})`, transformOrigin: 'center',
+          }}>
+            <circle cx="60" cy="60" r="54" fill="none" stroke={COLORS.ink} strokeWidth="2"
+                    strokeDasharray="340" strokeDashoffset={340 * (1 - ringP)}/>
+            <line x1="38" y1="60" x2="82" y2="60" stroke={COLORS.accent} strokeWidth="3"
+                  opacity={ringP}/>
+          </svg>
+        </div>
+
+        <div style={{
+          fontFamily: FONT_DISPLAY, fontSize: 152, fontWeight: 400,
+          color: COLORS.ink, letterSpacing: '-0.03em', lineHeight: 1.0,
+          opacity: wordP, transform: `translateY(${(1 - wordP) * 16}px)`,
+        }}>
+          No <em style={{ color: COLORS.accent }}>Front Desk.</em>
+        </div>
+
+        <div style={{
+          marginTop: 28,
+          fontFamily: FONT_DISPLAY, fontStyle: 'italic', fontSize: 42,
+          color: COLORS.muted, fontWeight: 400,
+          opacity: tagP, transform: `translateY(${(1 - tagP) * 12}px)`,
+        }}>
+          Self check-in. Without the queue.
+        </div>
+
+        <div style={{
+          marginTop: 64,
+          fontFamily: FONT_MONO, fontSize: 20,
+          letterSpacing: '0.3em', textTransform: 'uppercase',
+          color: COLORS.ink, opacity: urlP,
+        }}>
+          nofrontdesk.com
+        </div>
+      </div>
+
+      {[
+        { top: 60,  left: 60,    bt: 1, bl: 1 },
+        { top: 60,  right: 60,   bt: 1, br: 1 },
+        { bottom: 60, left: 60,  bb: 1, bl: 1 },
+        { bottom: 60, right: 60, bb: 1, br: 1 },
+      ].map((c, i) => (
+        <div key={i} style={{
+          position: 'absolute', width: 48, height: 48,
+          ...c,
+          borderTop:    c.bt ? `2px solid ${COLORS.accent}` : 'none',
+          borderBottom: c.bb ? `2px solid ${COLORS.accent}` : 'none',
+          borderLeft:   c.bl ? `2px solid ${COLORS.accent}` : 'none',
+          borderRight:  c.br ? `2px solid ${COLORS.accent}` : 'none',
+          opacity: clamp((localTime - 2.0) / 0.5, 0, 1),
+        }} />
+      ))}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Master composition
+// ─────────────────────────────────────────────────────────────────────────────
+
+function ProgressDots() {
+  const time = useTime();
+  const sections = [
+    { start: 0,    end: 2.6 },
+    { start: 2.6,  end: 6.4 },
+    { start: 6.4,  end: 14.0 },
+    { start: 14.0, end: 19.6 },
+    { start: 19.6, end: 24.6 },
+    { start: 24.6, end: 30.0 },
+    { start: 30.0, end: 39.0 },
+  ];
+  return (
+    <div style={{
+      position: 'absolute', right: 60, top: 28,
+      display: 'flex', gap: 8, alignItems: 'center',
+      fontFamily: FONT_MONO, fontSize: 11, letterSpacing: '0.2em',
+      mixBlendMode: 'difference', color: 'rgba(255,255,255,0.7)',
+      zIndex: 60,
+    }}>
+      {sections.map((s, i) => {
+        const active = time >= s.start && time < s.end;
+        const past = time >= s.end;
+        return (
+          <div key={i} style={{
+            width: active ? 32 : 8, height: 4,
+            background: active || past ? COLORS.accent : 'rgba(255,255,255,0.25)',
+            borderRadius: 2, transition: 'width 0.4s',
+          }}/>
+        );
+      })}
+      <div style={{ marginLeft: 12, fontVariantNumeric: 'tabular-nums' }}>
+        {String(Math.floor(time)).padStart(2, '0')} / 39
+      </div>
+    </div>
+  );
+}
+
+function Movie() {
+  return (
+    <>
+      <Sprite start={0}    end={2.6}>   <SceneOpen /></Sprite>
+      <Sprite start={2.6}  end={6.4}>  <SceneArrival /></Sprite>
+      <Sprite start={6.4}  end={14.0}>  <SceneLastName /></Sprite>
+      <Sprite start={14.0} end={19.6}>  <SceneForm /></Sprite>
+      <Sprite start={19.6} end={24.6}>  <SceneAccessCodes /></Sprite>
+      <Sprite start={24.6} end={30.0}>  <SceneDashboard /></Sprite>
+      <Sprite start={30.0} end={39.0}>  <SceneClose /></Sprite>
+
+      <ProgressDots />
+      <CaptionBar />
+      <Vignette />
+      <FilmGrain />
+    </>
+  );
+}
+
+Object.assign(window, { Movie, COLORS, W, H });
+
+</script>
+<script type="text/babel">
+  const root = ReactDOM.createRoot(document.getElementById('root'));
+  root.render(
+    <Stage width={W} height={H} duration={39} background={COLORS.cream} persistKey="nfd-explainer" autoplay={true} loop={true}>
+      <Movie />
+    </Stage>
+  );
+</script>
+</body>
+</html>
