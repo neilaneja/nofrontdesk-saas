@@ -3,7 +3,7 @@ const express = require('express');
 const session = require('express-session');
 const PgSession = require('connect-pg-simple')(session);
 const path = require('path');
-const { pool } = require('./lib/db');
+const pool = require('./lib/db');
 
 const app = express();
 
