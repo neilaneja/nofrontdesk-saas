@@ -1,572 +1,612 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#2C3E50">
-<title>Guest Check-In</title>
-<style>
-  /* âââââââââââââââââââââââââââââââââââââââââââ
-     CSS Variables â overridden by property config
-     âââââââââââââââââââââââââââââââââââââââââââ */
-  :root {
-    --brand: #2C3E50;
-    --accent: #E67E22;
-    --bg: #F8F9FA;
-    --card: #FFFFFF;
-    --text: #1A1A1A;
-    --text-muted: #6C757D;
-    --error: #DC3545;
-    --success: #28A745;
-    --radius: 16px;
-  }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#2C3E50">
+  <title>Guest Check-In</title>
+  <style>
+    /* âââââââââââââââââââââââââââââââââââââââââââââ
+       CSS Variables â overridden by property config
+       âââââââââââââââââââââââââââââââââââââââââââââ */
+    :root {
+      --brand: #2C3E50;
+      --accent: #E67E22;
+      --bg: #F8F9FA;
+      --card: #FFFFFF;
+      --text: #1A1A1A;
+      --text-muted: #6C757D;
+      --error: #DC3545;
+      --success: #28A745;
+      --radius: 16px;
+    }
 
-  /* âââââââââââââââââââââââââââââââââââââââââââ
-     Reset & Base
-     âââââââââââââââââââââââââââââââââââââââââââ */
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  html { font-size: 16px; -webkit-text-size-adjust: 100%; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100dvh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 0;
-  }
+    /* âââââââââââââââââââââââââââââââââââââââââââââ
+       Reset & Base
+       âââââââââââââââââââââââââââââââââââââââââââââ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; -webkit-text-size-adjust: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0;
+    }
 
-  /* âââââââââââââââââââââââââââââââââââââââââââ
-     Layout
-     âââââââââââââââââââââââââââââââââââââââââââ */
-  .container {
-    width: 100%;
-    max-width: 440px;
-    padding: 24px 20px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    min-height: 100dvh;
-  }
+    /* âââââââââââââââââââââââââââââââââââââââââââââ
+       Layout
+       âââââââââââââââââââââââââââââââââââââââââââââ */
+    .container {
+      width: 100%;
+      max-width: 440px;
+      padding: 24px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100dvh;
+    }
 
-  /* âââââââââââââââââââââââââââââââââââââââââââ
-     Header / Branding
-     âââââââââââââââââââââââââââââââââââââââââââ */
-  .header { width: 100%; text-align: center; padding: 40px 0 32px; }
-  .logo { width: 80px; height: 80px; object-fit: contain; margin-bottom: 20px; border-radius: 12px; }
-  .logo-placeholder { width: 80px; height: 80px; margin: 0 auto 20px; border-radius: 12px; background: var(--brand); display: flex; align-items: center; justify-content: center; }
-  .logo-placeholder svg { width: 40px; height: 40px; fill: white; }
-  .welcome-text { font-size: 1.75rem; font-weight: 700; color: var(--brand); line-height: 1.2; margin-bottom: 8px; }
-  .subtitle { font-size: 1.05rem; color: var(--text-muted); line-height: 1.4; }
+    /* âââââââââââââââââââââââââââââââââââââââââââââ
+       Header / Branding
+       âââââââââââââââââââââââââââââââââââââââââââââ */
+    .header { width: 100%; text-align: center; padding: 40px 0 32px; }
+    .logo { width: 80px; height: 80px; object-fit: contain; margin-bottom: 20px; border-radius: 12px; }
+    .logo-placeholder {
+      width: 80px; height: 80px; margin: 0 auto 20px;
+      border-radius: 12px; background: var(--brand);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .logo-placeholder svg { width: 40px; height: 40px; fill: white; }
+    .welcome-text { font-size: 1.75rem; font-weight: 700; color: var(--brand); line-height: 1.2; margin-bottom: 8px; }
+    .subtitle { font-size: 1.05rem; color: var(--text-muted); line-height: 1.4; }
 
-  /* âââââââââââââââââââââââââââââââââââââââââââ
-     Card / Form
-     âââââââââââââââââââââââââââââââââââââââââââ */
-  .card { background: var(--card); border-radius: var(--radius); box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 28px 24px; width: 100%; margin-top: 8px; }
-  .form-label { display: block; font-size: 0.9rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
-  .form-input { width: 100%; padding: 16px 18px; font-size: 1.15rem; border: 2px solid #DEE2E6; border-radius: 12px; outline: none; transition: border-color 0.2s, box-shadow 0.2s; background: var(--bg); -webkit-appearance: none; appearance: none; }
-  .form-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(230, 126, 34, 0.15); }
-  .form-input.error { border-color: var(--error); box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.12); }
-  .btn { display: block; width: 100%; padding: 16px; font-size: 1.1rem; font-weight: 600; color: white; background: var(--accent); border: none; border-radius: 12px; cursor: pointer; margin-top: 16px; transition: background 0.2s, transform 0.1s; -webkit-tap-highlight-color: transparent; }
-  .btn:active { transform: scale(0.98); }
-  .btn:disabled { background: #ADB5BD; cursor: not-allowed; transform: none; }
+    /* âââââââââââââââââââââââââââââââââââââââââââââ
+       Card / Form
+       âââââââââââââââââââââââââââââââââââââââââââââ */
+    .card {
+      background: var(--card); border-radius: var(--radius);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      padding: 28px 24px; width: 100%; margin-top: 8px;
+    }
+    .form-label {
+      display: block; font-size: 0.9rem; font-weight: 600;
+      color: var(--text-muted); text-transform: uppercase;
+      letter-spacing: 0.5px; margin-bottom: 10px;
+    }
+    .form-input {
+      width: 100%; padding: 16px 18px; font-size: 1.15rem;
+      border: 2px solid #DEE2E6; border-radius: 12px;
+      outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+      background: var(--bg); -webkit-appearance: none; appearance: none;
+    }
+    .form-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(230, 126, 34, 0.15); }
+    .form-input.error { border-color: var(--error); box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.12); }
+    .btn {
+      display: block; width: 100%; padding: 16px; font-size: 1.1rem;
+      font-weight: 600; color: white; background: var(--accent);
+      border: none; border-radius: 12px; cursor: pointer; margin-top: 16px;
+      transition: background 0.2s, transform 0.1s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { background: #ADB5BD; cursor: not-allowed; transform: none; }
 
-  /* âââââââââââââââââââââââââââââââââââââââââââ
-     Loading Spinner
-     âââââââââââââââââââââââââââââââââââââââââââ */
-  .spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 8px; }
-  @keyframes spin { to { transform: rotate(360deg); } }
+    /* âââââââââââââââââââââââââââââââââââââââââââââ
+       Loading Spinner
+       âââââââââââââââââââââââââââââââââââââââââââââ */
+    .spinner {
+      display: inline-block; width: 20px; height: 20px;
+      border: 3px solid rgba(255,255,255,0.3); border-top-color: white;
+      border-radius: 50%; animation: spin 0.7s linear infinite;
+      vertical-align: middle; margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* âââââââââââââââââââââââââââââââââââââââââââ
-     Messages (error, info)
-     âââââââââââââââââââââââââââââââââââââââââââ */
-  .message { padding: 14px 16px; border-radius: 10px; font-size: 0.95rem; line-height: 1.4; margin-top: 16px; display: none; }
-  .message.error { background: #FFF5F5; color: var(--error); border: 1px solid #FFCDD2; }
-  .message.success { background: #F0FFF4; color: var(--success); border: 1px solid #C8E6C9; }
-  .message.visible { display: block; }
+    /* âââââââââââââââââââââââââââââââââââââââââââââ
+       Messages
+       âââââââââââââââââââââââââââââââââââââââââââââ */
+    .message {
+      padding: 14px 16px; border-radius: 10px; font-size: 0.95rem;
+      line-height: 1.4; margin-top: 16px; display: none;
+    }
+    .message.error { background: #FFF5F5; color: var(--error); border: 1px solid #FFCDD2; }
+    .message.success { background: #F0FFF4; color: var(--success); border: 1px solid #C8E6C9; }
+    .message.visible { display: block; }
 
-  /* âââââââââââââââââââââââââââââââââââââââââââ
-     Disambiguation (multiple reservations)
-     âââââââââââââââââââââââââââââââââââââââââââ */
-  .disambig { display: none; width: 100%; margin-top: 16px; }
-  .disambig.visible { display: block; }
-  .disambig-title { font-size: 1rem; font-weight: 600; margin-bottom: 12px; color: var(--text); }
-  .res-option { background: var(--card); border: 2px solid #DEE2E6; border-radius: 12px; padding: 16px; margin-bottom: 10px; cursor: pointer; transition: border-color 0.2s, box-shadow 0.2s; -webkit-tap-highlight-color: transparent; }
-  .res-option:active, .res-option:hover { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(230, 126, 34, 0.12); }
-  .res-name { font-size: 1.1rem; font-weight: 600; color: var(--text); }
-  .res-dates { font-size: 0.9rem; color: var(--text-muted); margin-top: 4px; }
-  .res-listing { font-size: 0.85rem; color: var(--text-muted); margin-top: 2px; }
+    /* âââââââââââââââââââââââââââââââââââââââââââââ
+       Disambiguation
+       âââââââââââââââââââââââââââââââââââââââââââââ */
+    .disambig { display: none; width: 100%; margin-top: 16px; }
+    .disambig.visible { display: block; }
+    .disambig-title { font-size: 1rem; font-weight: 600; margin-bottom: 12px; color: var(--text); }
+    .res-option {
+      background: var(--card); border: 2px solid #DEE2E6;
+      border-radius: 12px; padding: 16px; margin-bottom: 10px;
+      cursor: pointer; transition: border-color 0.2s, box-shadow 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .res-option:active, .res-option:hover { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(230, 126, 34, 0.12); }
+    .res-name { font-size: 1.1rem; font-weight: 600; color: var(--text); }
+    .res-dates { font-size: 0.9rem; color: var(--text-muted); margin-top: 4px; }
+    .res-listing { font-size: 0.85rem; color: var(--text-muted); margin-top: 2px; }
 
-  /* âââââââââââââââââââââââââââââââââââââââââââ
-     Redirect screen
-     âââââââââââââââââââââââââââââââââââââââââââ */
-  .redirect-screen { display: none; text-align: center; padding: 40px 24px; }
-  .redirect-screen.visible { display: block; }
-  .redirect-icon { width: 64px; height: 64px; margin: 0 auto 20px; background: var(--success); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-  .redirect-icon svg { width: 32px; height: 32px; fill: white; }
-  .redirect-text { font-size: 1.2rem; font-weight: 600; color: var(--text); margin-bottom: 8px; }
-  .redirect-sub { font-size: 0.95rem; color: var(--text-muted); }
+    /* âââââââââââââââââââââââââââââââââââââââââââââ
+       Redirect screen
+       âââââââââââââââââââââââââââââââââââââââââââââ */
+    .redirect-screen { display: none; text-align: center; padding: 40px 24px; }
+    .redirect-screen.visible { display: block; }
+    .redirect-icon {
+      width: 64px; height: 64px; margin: 0 auto 20px;
+      background: var(--success); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .redirect-icon svg { width: 32px; height: 32px; fill: white; }
+    .redirect-text { font-size: 1.2rem; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+    .redirect-sub { font-size: 0.95rem; color: var(--text-muted); }
 
-  /* âââââââââââââââââââââââââââââââââââââââââââ
-     Fallback / Help
-     âââââââââââââââââââââââââââââââââââââââââââ */
-  .help-link { margin-top: 32px; text-align: center; font-size: 0.9rem; color: var(--text-muted); }
-  .help-link a { color: var(--accent); text-decoration: none; font-weight: 600; }
+    /* âââââââââââââââââââââââââââââââââââââââââââââ
+       Confirmation Code
+       âââââââââââââââââââââââââââââââââââââââââââââ */
+    .confirm-code-input {
+      text-transform: uppercase; letter-spacing: 4px;
+      text-align: center; font-size: 1.5rem; font-weight: bold;
+    }
 
-  /* âââââââââââââââââââââââââââââââââââââââââââ
-     System error overlay
-     âââââââââââââââââââââââââââââââââââââââââââ */
-  .system-error { display: none; text-align: center; padding: 40px 24px; }
-  .system-error.visible { display: block; }
-  .system-error-icon { font-size: 3rem; margin-bottom: 16px; }
-  .system-error-title { font-size: 1.3rem; font-weight: 700; margin-bottom: 8px; }
-  .system-error-text { font-size: 1rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 20px; }
-  .phone-btn { display: inline-flex; align-items: center; gap: 8px; padding: 14px 28px; background: var(--brand); color: white; border-radius: 12px; text-decoration: none; font-size: 1.1rem; font-weight: 600; }
+    /* âââââââââââââââââââââââââââââââââââââââââââââ
+       Help footer
+       âââââââââââââââââââââââââââââââââââââââââââââ */
+    .help-link { margin-top: 32px; text-align: center; font-size: 0.9rem; color: var(--text-muted); }
+    .help-link a { color: var(--accent); text-decoration: none; font-weight: 600; }
 
-  /* âââââââââââââââââââââââââââââââââââââââââââ
-     Loading state (initial page load)
-     âââââââââââââââââââââââââââââââââââââââââââ */
-  .page-loader { display: flex; align-items: center; justify-content: center; min-height: 100dvh; }
-  .page-loader .spinner { width: 40px; height: 40px; border-width: 4px; border-color: #DEE2E6; border-top-color: var(--accent); }
-</style>
+    /* âââââââââââââââââââââââââââââââââââââââââââââ
+       System error
+       âââââââââââââââââââââââââââââââââââââââââââââ */
+    .system-error { display: none; text-align: center; padding: 40px 24px; }
+    .system-error.visible { display: block; }
+    .system-error-icon { font-size: 3rem; margin-bottom: 16px; }
+    .system-error-title { font-size: 1.3rem; font-weight: 700; margin-bottom: 8px; }
+    .system-error-text { font-size: 1rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 20px; }
+    .phone-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 14px 28px; background: var(--brand); color: white;
+      border-radius: 12px; text-decoration: none; font-size: 1.1rem; font-weight: 600;
+    }
+
+    /* âââââââââââââââââââââââââââââââââââââââââââââ
+       Page loader
+       âââââââââââââââââââââââââââââââââââââââââââââ */
+    .page-loader { display: flex; align-items: center; justify-content: center; min-height: 100dvh; }
+    .page-loader .spinner { width: 40px; height: 40px; border-width: 4px; border-color: #DEE2E6; border-top-color: var(--accent); }
+  </style>
 </head>
 <body>
 
-<!-- Initial loader while we fetch property config -->
-<div id="pageLoader" class="page-loader">
-  <div class="spinner"></div>
-</div>
-
-<!-- Main content (hidden until property loads) -->
-<div class="container" id="mainContent" style="display:none;">
-
-  <!-- ââ Header âââââââââââââââââââââââââââ -->
-  <div class="header">
-    <div id="logoContainer"></div>
-    <div class="welcome-text" id="welcomeText">Welcome!</div>
-    <div class="subtitle">Enter your last name to check in.</div>
+  <!-- Initial loader while we fetch property config -->
+  <div id="pageLoader" class="page-loader">
+    <div class="spinner"></div>
   </div>
 
-  <!-- ââ Search Form ââââââââââââââââââââââ -->
-  <div class="card" id="searchCard">
-    <label class="form-label" for="lastNameInput">Last Name</label>
-    <input type="text" id="lastNameInput" class="form-input"
-           placeholder="e.g. Smith"
-           autocomplete="family-name" autocapitalize="words"
-           spellcheck="false" enterkeyhint="search"
-    >
-    <button class="btn" id="searchBtn" onclick="doLookup()">
-      Find My Reservation
-    </button>
-    <div class="message error" id="errorMsg"></div>
-    <div class="message success" id="successMsg"></div>
-  </div>
+  <!-- Main content (hidden until property loads) -->
+  <div class="container" id="mainContent" style="display:none;">
 
-  <!-- ââ Confirmation Code Step ââââââââââââ -->
-  <div class="card" id="confirmCard" style="display:none;">
-    <h2 style="margin-top:0;color:var(--brand);font-size:1.3rem;">Verify Your Reservation</h2>
-    <p style="color:var(--text-muted);margin:16px 0;font-size:0.95rem;">Please enter the last 4 characters of your confirmation code to proceed.</p>
-
-    <div style="margin-bottom:18px;">
-      <label class="form-label" for="confirmInput">Last 4 of Confirmation Code</label>
-      <input
-        type="text"
-        id="confirmInput"
-        class="form-input"
-        placeholder="e.g. AB12"
-        maxlength="4"
-        autocomplete="off"
-        style="text-transform:uppercase;letter-spacing:4px;text-align:center;font-size:1.5rem;font-weight:bold;"
-      >
-      <div style="font-size:0.8rem;color:var(--text-muted);margin-top:6px;">Found in your booking confirmation email</div>
+    <!-- ââ Header âââââââââââââââââââââââââââ -->
+    <div class="header">
+      <div id="logoContainer"></div>
+      <div class="welcome-text" id="welcomeText">Welcome!</div>
+      <div class="subtitle">Enter your last name to check in.</div>
     </div>
 
-    <button class="btn" id="confirmBtn" onclick="doConfirm()">Verify &amp; Check In</button>
-
-    <div class="message error" id="confirmErrorMsg" style="margin-top:12px;"></div>
-
-    <button
-      onclick="backToSearch()"
-      style="background:none;border:none;color:var(--text-muted);font-size:0.9rem;margin-top:16px;cursor:pointer;width:100%;padding:8px;text-align:center;"
-    >
-      &larr; Back to Search
-    </button>
-  </div>
-
-  <!-- ââ Multiple results (disambiguation) ââ -->
-  <div class="disambig" id="disambigSection">
-    <div class="disambig-title">We found multiple reservations. Please select yours:</div>
-    <div id="disambigList"></div>
-  </div>
-
-  <!-- ââ Redirect confirmation ââââââââââââ -->
-  <div class="redirect-screen" id="redirectScreen">
-    <div class="redirect-icon">
-      <svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>
+    <!-- ââ Search Form ââââââââââââââââââââââââ -->
+    <div class="card" id="searchCard">
+      <label class="form-label" for="lastNameInput">Last Name</label>
+      <input type="text" id="lastNameInput" class="form-input"
+        placeholder="e.g. Smith" autocomplete="family-name"
+        autocapitalize="words" spellcheck="false" enterkeyhint="search">
+      <button class="btn" id="searchBtn" onclick="doLookup()">
+        Find My Reservation
+      </button>
+      <div class="message error" id="errorMsg"></div>
+      <div class="message success" id="successMsg"></div>
     </div>
-    <div class="redirect-text">Reservation Found!</div>
-    <div class="redirect-sub">Redirecting you to your check-in form...</div>
-  </div>
 
-  <!-- ââ System Error âââââââââââââââââââââ -->
-  <div class="system-error" id="systemError">
-    <div class="system-error-icon">â ï¸</div>
-    <div class="system-error-title">Temporarily Unavailable</div>
-    <div class="system-error-text">
-      Our check-in system is experiencing issues.<br>
-      Please call us for immediate assistance.
+    <!-- ââ Confirmation Code Step ââââââââââââ -->
+    <div class="card" id="confirmCard" style="display:none;">
+      <h2 style="margin-top:0;color:var(--brand);font-size:1.3rem;">Verify Your Reservation</h2>
+      <p style="color:var(--text-muted);margin:16px 0;font-size:0.95rem;">
+        Please enter the last 4 characters of your confirmation code to proceed.
+      </p>
+      <div style="margin-bottom:18px;">
+        <label class="form-label" for="confirmInput">Last 4 of Confirmation Code</label>
+        <input type="text" id="confirmInput" class="form-input confirm-code-input"
+          placeholder="e.g. AB12" maxlength="4" autocomplete="off">
+        <div style="font-size:0.8rem;color:var(--text-muted);margin-top:6px;">Found in your booking confirmation email</div>
+      </div>
+      <button class="btn" id="confirmBtn" onclick="doConfirm()">Verify &amp; Check In</button>
+      <div class="message error" id="confirmErrorMsg" style="margin-top:12px;"></div>
+      <button onclick="backToSearch()" style="background:none;border:none;color:var(--text-muted);font-size:0.9rem;margin-top:16px;cursor:pointer;width:100%;padding:8px;text-align:center;">
+        &larr; Back to Search
+      </button>
     </div>
-    <a href="#" id="phoneBtn" class="phone-btn">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M6.62 10.79c1.44 2.83 3.76 5.15 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
-      <span id="phoneBtnText">Call Us</span>
-    </a>
-  </div>
 
-  <!-- ââ Help footer ââââââââââââââââââââââ -->
-  <div class="help-link" id="helpFooter">
-    Need help? <a href="#" id="helpPhone">Call us</a>
+    <!-- ââ Multiple results (disambiguation) ââ -->
+    <div class="disambig" id="disambigSection">
+      <div class="disambig-title">We found multiple reservations. Please select yours:</div>
+      <div id="disambigList"></div>
+    </div>
+
+    <!-- ââ Redirect confirmation ââââââââââââ -->
+    <div class="redirect-screen" id="redirectScreen">
+      <div class="redirect-icon">
+        <svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>
+      </div>
+      <div class="redirect-text">Reservation Found!</div>
+      <div class="redirect-sub" id="redirectSub">Redirecting you to your check-in form...</div>
+    </div>
+
+    <!-- ââ System Error âââââââââââââââââââââ -->
+    <div class="system-error" id="systemError">
+      <div class="system-error-icon">&#9888;&#65039;</div>
+      <div class="system-error-title">Temporarily Unavailable</div>
+      <div class="system-error-text">
+        Our check-in system is experiencing issues.<br>
+        Please call us for immediate assistance.
+      </div>
+      <a href="#" id="phoneBtn" class="phone-btn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M6.62 10.79c1.44 2.83 3.76 5.15 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+        <span id="phoneBtnText">Call Us</span>
+      </a>
+    </div>
+
+    <!-- ââ Help footer ââââââââââââââââââââââââ -->
+    <div class="help-link" id="helpFooter">
+      Need help? <a href="#" id="helpPhone">Call us</a>
+    </div>
   </div>
-</div>
 
 <script>
-  // âââââââââââââââââââââââââââââââââââââââââââ
-  // Configuration & State
-  // âââââââââââââââââââââââââââââââââââââââââââ
-  let propertyConfig = null;
-  let propertySlug = '';
-  let requireConfirmationCode = false;
+// âââââââââââââââââââââââââââââââââââââââââââââ
+// Configuration & State
+// âââââââââââââââââââââââââââââââââââââââââââââ
+let propertyConfig = null;
+let propertySlug = '';
+let requireConfirmationCode = false;
 
-  // Detect account and property slugs from the URL
-  // URL pattern: /c/{accountSlug}/{propertySlug}
-  let accountSlug = '';
-  const pathParts = window.location.pathname.split('/').filter(Boolean);
-  if (pathParts[0] === 'c' && pathParts[1] && pathParts[2]) {
-    accountSlug = pathParts[1];
-    propertySlug = pathParts[2];
-  }
+let accountSlug = '';
+const pathParts = window.location.pathname.split('/').filter(Boolean);
+if (pathParts[0] === 'c' && pathParts[1] && pathParts[2]) {
+  accountSlug = pathParts[1];
+  propertySlug = pathParts[2];
+}
 
-  // âââââââââââââââââââââââââââââââââââââââââââ
-  // Initialize: Load property branding
-  // âââââââââââââââââââââââââââââââââââââââââââ
-  async function init() {
-    try {
-      let url = (accountSlug && propertySlug)
-        ? `/api/property/${accountSlug}/${propertySlug}`
-        : '/api/property/default/default';
+// âââââââââââââââââââââââââââââââââââââââââââââ
+// Initialize: Load property branding
+// âââââââââââââââââââââââââââââââââââââââââââââ
+async function init() {
+  try {
+    let url = (accountSlug && propertySlug)
+      ? `/api/property/${accountSlug}/${propertySlug}`
+      : '/api/property/default/default';
 
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('Property not found');
-      propertyConfig = await res.json();
-      requireConfirmationCode = propertyConfig.requireConfirmationCode || false;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Property not found');
 
-      // Apply branding
-      document.documentElement.style.setProperty('--brand', propertyConfig.brandColor);
-      document.documentElement.style.setProperty('--accent', propertyConfig.accentColor);
-      document.querySelector('meta[name="theme-color"]').content = propertyConfig.brandColor;
+    propertyConfig = await res.json();
+    requireConfirmationCode = propertyConfig.requireConfirmationCode || false;
 
-      // Logo
-      const logoContainer = document.getElementById('logoContainer');
-      if (propertyConfig.logoUrl && propertyConfig.logoUrl !== '') {
-        const img = document.createElement('img');
-        img.src = propertyConfig.logoUrl;
-        img.alt = propertyConfig.name;
-        img.className = 'logo';
-        img.onerror = () => { showPlaceholderLogo(logoContainer, propertyConfig.name); };
-        logoContainer.appendChild(img);
-      } else {
-        showPlaceholderLogo(logoContainer, propertyConfig.name);
-      }
+    // Apply branding
+    document.documentElement.style.setProperty('--brand', propertyConfig.brandColor);
+    document.documentElement.style.setProperty('--accent', propertyConfig.accentColor);
+    document.querySelector('meta[name="theme-color"]').content = propertyConfig.brandColor;
 
-      // Text
-      document.getElementById('welcomeText').textContent = propertyConfig.welcomeMessage;
-      document.title = `Check In â ${propertyConfig.name}`;
-
-      // Phone links
-      const phone = propertyConfig.fallbackPhone;
-      const phoneHref = 'tel:' + phone.replace(/[^+\d]/g, '');
-      document.getElementById('helpPhone').href = phoneHref;
-      document.getElementById('helpPhone').textContent = `Call ${phone}`;
-      document.getElementById('phoneBtn').href = phoneHref;
-      document.getElementById('phoneBtnText').textContent = `Call ${phone}`;
-
-      // Show content
-      document.getElementById('pageLoader').style.display = 'none';
-      document.getElementById('mainContent').style.display = 'flex';
-
-      // Auto-focus the input
-      setTimeout(() => document.getElementById('lastNameInput').focus(), 300);
-
-    } catch (err) {
-      console.error('Init error:', err);
-      // Show a generic system error
-      document.getElementById('pageLoader').style.display = 'none';
-      document.getElementById('mainContent').style.display = 'flex';
-      showSystemError();
+    // Logo
+    const logoContainer = document.getElementById('logoContainer');
+    if (propertyConfig.logoUrl && propertyConfig.logoUrl !== '') {
+      const img = document.createElement('img');
+      img.src = propertyConfig.logoUrl;
+      img.alt = propertyConfig.name;
+      img.className = 'logo';
+      img.onerror = () => { showPlaceholderLogo(logoContainer, propertyConfig.name); };
+      logoContainer.appendChild(img);
+    } else {
+      showPlaceholderLogo(logoContainer, propertyConfig.name);
     }
+
+    // Text
+    document.getElementById('welcomeText').textContent = propertyConfig.welcomeMessage;
+    document.title = `Check In â ${propertyConfig.name}`;
+
+    // Phone links
+    const phone = propertyConfig.fallbackPhone;
+    const phoneHref = 'tel:' + phone.replace(/[^+\d]/g, '');
+    document.getElementById('helpPhone').href = phoneHref;
+    document.getElementById('helpPhone').textContent = `Call ${phone}`;
+    document.getElementById('phoneBtn').href = phoneHref;
+    document.getElementById('phoneBtnText').textContent = `Call ${phone}`;
+
+    // Show content
+    document.getElementById('pageLoader').style.display = 'none';
+    document.getElementById('mainContent').style.display = 'flex';
+
+    // Auto-focus
+    setTimeout(() => document.getElementById('lastNameInput').focus(), 300);
+
+  } catch (err) {
+    console.error('Init error:', err);
+    document.getElementById('pageLoader').style.display = 'none';
+    document.getElementById('mainContent').style.display = 'flex';
+    showSystemError();
+  }
+}
+
+function showPlaceholderLogo(container, name) {
+  const div = document.createElement('div');
+  div.className = 'logo-placeholder';
+  div.innerHTML = `<svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>`;
+  container.appendChild(div);
+}
+
+// âââââââââââââââââââââââââââââââââââââââââââââ
+// Reservation Lookup
+// âââââââââââââââââââââââââââââââââââââââââââââ
+async function doLookup() {
+  const input = document.getElementById('lastNameInput');
+  const btn = document.getElementById('searchBtn');
+  const lastName = input.value.trim();
+
+  hideMessages();
+  input.classList.remove('error');
+  document.getElementById('disambigSection').classList.remove('visible');
+
+  if (!lastName) {
+    input.classList.add('error');
+    showError('Please enter your last name.');
+    input.focus();
+    return;
   }
 
-  function showPlaceholderLogo(container, name) {
-    const div = document.createElement('div');
-    div.className = 'logo-placeholder';
-    div.innerHTML = `<svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>`;
-    container.appendChild(div);
-  }
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Searching...';
 
-  // âââââââââââââââââââââââââââââââââââââââââââ
-  // Reservation Lookup
-  // âââââââââââââââââââââââââââââââââââââââââââ
-  async function doLookup() {
-    const input = document.getElementById('lastNameInput');
-    const btn = document.getElementById('searchBtn');
-    const errorMsg = document.getElementById('errorMsg');
-    const lastName = input.value.trim();
+  try {
+    const res = await fetch('/api/lookup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lastName, accountSlug, propertySlug }),
+    });
 
-    // Reset states
-    hideMessages();
-    input.classList.remove('error');
-    document.getElementById('disambigSection').classList.remove('visible');
+    if (!res.ok) {
+      if (res.status >= 500) throw new Error('Server error');
+      const data = await res.json();
+      showError(data.message || 'Something went wrong.');
+      return;
+    }
 
-    if (!lastName) {
+    const data = await res.json();
+
+    if (data.status === 'not_found') {
       input.classList.add('error');
-      showError('Please enter your last name.');
+      showError(data.message);
       input.focus();
+      input.select();
+      return;
+
+   }
+
+    if (data.status === 'needsConfirmation') {
+      showConfirmationCode();
       return;
     }
 
-    // Loading state
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Searching...';
-
-    try {
-      const res = await fetch('/api/lookup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lastName, accountSlug, propertySlug }),
-      });
-
-      if (!res.ok) {
-        if (res.status >= 500) throw new Error('Server error');
-        const data = await res.json();
-        showError(data.message || 'Something went wrong.');
-        return;
-      }
-
-      const data = await res.json();
-
-      if (data.status === 'not_found') {
-        input.classList.add('error');
-        showError(data.message);
-        input.focus();
-        input.select();
-        return;
-      }
-
-      if (data.status === 'needsConfirmation') {
-        // Server says confirmation code is required - show the code input
+    if (data.status === 'found') {
+      if (requireConfirmationCode) {
         showConfirmationCode();
-        return;
-      }
-
-      if (data.status === 'found') {
-        if (requireConfirmationCode) {
-          // Client-side check: show confirmation code step
-          showConfirmationCode();
-        } else {
-          redirectToCheckIn(data.reservation);
-        }
-        return;
-      }
-
-      if (data.status === 'multiple') {
-        showDisambiguation(data.reservations);
-        return;
-      }
-
-    } catch (err) {
-      console.error('Lookup error:', err);
-      showSystemError();
-    } finally {
-      btn.disabled = false;
-      btn.innerHTML = 'Find My Reservation';
-    }
-  }
-
-  // âââââââââââââââââââââââââââââââââââââââââââ
-  // Confirmation Code Verification
-  // âââââââââââââââââââââââââââââââââââââââââââ
-  function showConfirmationCode() {
-    document.getElementById('searchCard').style.display = 'none';
-    document.getElementById('disambigSection').classList.remove('visible');
-    document.getElementById('confirmCard').style.display = 'block';
-
-    // Clear any previous error
-    const errorMsg = document.getElementById('confirmErrorMsg');
-    errorMsg.style.display = 'none';
-    errorMsg.textContent = '';
-    document.getElementById('confirmInput').value = '';
-
-    // Focus on the input
-    setTimeout(() => document.getElementById('confirmInput').focus(), 200);
-  }
-
-  async function doConfirm() {
-    const confirmationCode = document.getElementById('confirmInput').value.trim();
-    const errorMsg = document.getElementById('confirmErrorMsg');
-    const btn = document.getElementById('confirmBtn');
-
-    if (!confirmationCode) {
-      errorMsg.textContent = 'Please enter a confirmation code';
-      errorMsg.style.display = 'block';
-      return;
-    }
-
-    if (confirmationCode.length !== 4) {
-      errorMsg.textContent = 'Confirmation code must be 4 characters';
-      errorMsg.style.display = 'block';
-      return;
-    }
-
-    // Disable button and show loading state
-    btn.disabled = true;
-    btn.textContent = 'Verifying...';
-    errorMsg.style.display = 'none';
-
-    const lastName = document.getElementById('lastNameInput').value.trim();
-
-    try {
-      const res = await fetch('/api/lookup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          lastName: lastName,
-          accountSlug: accountSlug,
-          propertySlug: propertySlug,
-          confirmationCode: confirmationCode,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (data.status === 'found') {
-        redirectToCheckIn(data.reservation);
-      } else if (data.status === 'multiple') {
-        document.getElementById('confirmCard').style.display = 'none';
-        showDisambiguation(data.reservations);
       } else {
-        errorMsg.textContent = data.message || 'Invalid confirmation code. Please check and try again.';
-        errorMsg.style.display = 'block';
-        btn.disabled = false;
-        btn.textContent = 'Verify & Check In';
+        redirectToCheckIn(data.reservation);
       }
-    } catch (err) {
-      errorMsg.textContent = 'An error occurred. Please try again.';
+      return;
+    }
+
+    if (data.status === 'multiple') {
+      showDisambiguation(data.reservations);
+      return;
+    }
+
+  } catch (err) {
+    console.error('Lookup error:', err);
+    showSystemError();
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'Find My Reservation';
+  }
+}
+
+// âââââââââââââââââââââââââââââââââââââââââââââ
+// Confirmation Code
+// âââââââââââââââââââââââââââââââââââââââââââââ
+function showConfirmationCode() {
+  document.getElementById('searchCard').style.display = 'none';
+  document.getElementById('disambigSection').classList.remove('visible');
+  document.getElementById('confirmCard').style.display = 'block';
+
+  const errorMsg = document.getElementById('confirmErrorMsg');
+  errorMsg.style.display = 'none';
+  errorMsg.textContent = '';
+  document.getElementById('confirmInput').value = '';
+
+  setTimeout(() => document.getElementById('confirmInput').focus(), 200);
+}
+
+async function doConfirm() {
+  const confirmationCode = document.getElementById('confirmInput').value.trim();
+  const errorMsg = document.getElementById('confirmErrorMsg');
+  const btn = document.getElementById('confirmBtn');
+
+  if (!confirmationCode) {
+    errorMsg.textContent = 'Please enter a confirmation code';
+    errorMsg.style.display = 'block';
+    return;
+  }
+  if (confirmationCode.length !== 4) {
+    errorMsg.textContent = 'Confirmation code must be 4 characters';
+    errorMsg.style.display = 'block';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Verifying...';
+  errorMsg.style.display = 'none';
+
+  const lastName = document.getElementById('lastNameInput').value.trim();
+
+  try {
+    const res = await fetch('/api/lookup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lastName, accountSlug, propertySlug, confirmationCode }),
+    });
+
+    const data = await res.json();
+
+    if (data.status === 'found') {
+      redirectToCheckIn(data.reservation);
+    } else if (data.status === 'multiple') {
+      document.getElementById('confirmCard').style.display = 'none';
+      showDisambiguation(data.reservations);
+    } else {
+      errorMsg.textContent = data.message || 'Invalid confirmation code. Please check and try again.';
       errorMsg.style.display = 'block';
       btn.disabled = false;
       btn.textContent = 'Verify & Check In';
     }
+  } catch (err) {
+    errorMsg.textContent = 'An error occurred. Please try again.';
+    errorMsg.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Verify & Check In';
   }
+}
 
-  function backToSearch() {
-    document.getElementById('confirmCard').style.display = 'none';
-    document.getElementById('searchCard').style.display = 'block';
-    document.getElementById('confirmInput').value = '';
-    document.getElementById('lastNameInput').focus();
-  }
+function backToSearch() {
+  document.getElementById('confirmCard').style.display = 'none';
+  document.getElementById('searchCard').style.display = 'block';
+  document.getElementById('confirmInput').value = '';
+  document.getElementById('lastNameInput').focus();
+}
 
-  // âââââââââââââââââââââââââââââââââââââââââââ
-  // Redirect to Guesty check-in form
-  // âââââââââââââââââââââââââââââââââââââââââââ
-  function redirectToCheckIn(reservation) {
-    document.getElementById('searchCard').style.display = 'none';
-    document.getElementById('confirmCard').style.display = 'none';
-    document.getElementById('helpFooter').style.display = 'none';
-    document.getElementById('redirectScreen').classList.add('visible');
+// âââââââââââââââââââââââââââââââââââââââââââââ
+// Redirect to check-in form (PMS native OR NoFrontDesk built-in)
+// âââââââââââââââââââââââââââââââââââââââââââââ
+function redirectToCheckIn(reservation) {
+  document.getElementById('searchCard').style.display = 'none';
+  document.getElementById('confirmCard').style.display = 'none';
+  document.getElementById('helpFooter').style.display = 'none';
+  document.getElementById('redirectScreen').classList.add('visible');
 
-    // Brief pause so the guest sees the confirmation, then redirect
+  const checkInUrl = reservation.checkInFormUrl;
+
+  if (checkInUrl && checkInUrl.trim() !== '') {
+    // PMS has a native check-in form â redirect to it
+    document.getElementById('redirectSub').textContent = 'Redirecting you to your check-in form...';
     setTimeout(() => {
-      window.location.href = reservation.checkInFormUrl;
+      window.location.href = checkInUrl;
     }, 1800);
-  }
+  } else {
+    // No PMS native form â redirect to NoFrontDesk built-in check-in form
+    document.getElementById('redirectSub').textContent = 'Taking you to complete your check-in...';
 
-  // âââââââââââââââââââââââââââââââââââââââââââ
-  // Disambiguation: multiple reservations
-  // âââââââââââââââââââââââââââââââââââââââââââ
-  function showDisambiguation(reservations) {
-    const list = document.getElementById('disambigList');
-    list.innerHTML = '';
-
-    reservations.forEach(r => {
-      const div = document.createElement('div');
-      div.className = 'res-option';
-      div.onclick = () => redirectToCheckIn(r);
-
-      const checkIn = formatDate(r.checkIn);
-      const checkOut = formatDate(r.checkOut);
-
-      div.innerHTML = `
-        <div class="res-name">${escapeHtml(r.guestFirstName)} ${escapeHtml(r.guestLastName)}</div>
-        <div class="res-dates">${checkIn} â ${checkOut}</div>
-        ${r.listingName ? `<div class="res-listing">${escapeHtml(r.listingName)}</div>` : ''}
-      `;
-      list.appendChild(div);
+    const params = new URLSearchParams({
+      account: accountSlug,
+      property: propertySlug,
+      reservation: reservation.id || '',
+      firstName: reservation.guestFirstName || '',
+      lastName: reservation.guestLastName || '',
+      checkIn: reservation.checkIn || '',
+      checkOut: reservation.checkOut || '',
+      listing: reservation.listingName || '',
     });
 
-    document.getElementById('disambigSection').classList.add('visible');
+    setTimeout(() => {
+      window.location.href = `/checkin-form?${params.toString()}`;
+    }, 1800);
   }
+}
 
-  // âââââââââââââââââââââââââââââââââââââââââââ
-  // System error (fallback)
-  // âââââââââââââââââââââââââââââââââââââââââââ
-  function showSystemError() {
-    document.getElementById('searchCard').style.display = 'none';
-    document.getElementById('confirmCard').style.display = 'none';
-    document.getElementById('disambigSection').classList.remove('visible');
-    document.getElementById('helpFooter').style.display = 'none';
-    document.getElementById('systemError').classList.add('visible');
-  }
+// âââââââââââââââââââââââââââââââââââââââââââââ
+// Disambiguation: multiple reservations
+// âââââââââââââââââââââââââââââââââââââââââââââ
+function showDisambiguation(reservations) {
+  const list = document.getElementById('disambigList');
+  list.innerHTML = '';
 
-  // âââââââââââââââââââââââââââââââââââââââââââ
-  // UI Helpers
-  // âââââââââââââââââââââââââââââââââââââââââââ
-  function showError(msg) {
-    const el = document.getElementById('errorMsg');
-    el.textContent = msg;
-    el.classList.add('visible');
-  }
-
-  function hideMessages() {
-    document.querySelectorAll('.message').forEach(m => m.classList.remove('visible'));
-  }
-
-  function formatDate(dateStr) {
-    if (!dateStr) return 'â';
-    try {
-      return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    } catch { return dateStr; }
-  }
-
-  function escapeHtml(str) {
+  reservations.forEach(r => {
     const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-  }
+    div.className = 'res-option';
+    div.onclick = () => redirectToCheckIn(r);
 
-  // Enter key triggers search or confirm
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      if (document.activeElement.id === 'lastNameInput') {
-        doLookup();
-      } else if (document.activeElement.id === 'confirmInput') {
-        doConfirm();
-      }
-    }
+    const checkIn = formatDate(r.checkIn);
+    const checkOut = formatDate(r.checkOut);
+
+    div.innerHTML = `
+      <div class="res-name">${escapeHtml(r.guestFirstName)} ${escapeHtml(r.guestLastName || '')}</div>
+      <div class="res-dates">${checkIn} â ${checkOut}</div>
+      ${r.listingName ? `<div class="res-listing">${escapeHtml(r.listingName)}</div>` : ''}
+    `;
+    list.appendChild(div);
   });
 
-  // âââââââââââââââââââââââââââââââââââââââââââ
-  // Boot
-  // âââââââââââââââââââââââââââââââââââââââââââ
-  init();
+  document.getElementById('disambigSection').classList.add('visible');
+}
+
+// âââââââââââââââââââââââââââââââââââââââââââââ
+// System error
+// âââââââââââââââââââââââââââââââââââââââââââââ
+function showSystemError() {
+  document.getElementById('searchCard').style.display = 'none';
+  document.getElementById('confirmCard').style.display = 'none';
+  document.getElementById('disambigSection').classList.remove('visible');
+  document.getElementById('helpFooter').style.display = 'none';
+  document.getElementById('systemError').classList.add('visible');
+}
+
+// âââââââââââââââââââââââââââââââââââââââââââââ
+// UI Helpers
+// âââââââââââââââââââââââââââââââââââââââââââââ
+function showError(msg) {
+  const el = document.getElementById('errorMsg');
+  el.textContent = msg;
+  el.classList.add('visible');
+}
+
+function hideMessages() {
+  document.querySelectorAll('.message').forEach(m => m.classList.remove('visible'));
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return 'â';
+  try { return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
+  catch { return dateStr; }
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// Enter key
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    if (document.activeElement.id === 'lastNameInput') doLookup();
+    else if (document.activeElement.id === 'confirmInput') doConfirm();
+  }
+});
+
+// Boot
+init();
 </script>
 </body>
 </html>
