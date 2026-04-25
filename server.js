@@ -112,6 +112,13 @@ function landingPage() {
     .cta-secondary { color: #e94560; background: white; border: 2px solid #e94560; }
     .cta-secondary:hover { background: #fff5f7; }
 
+    /* ── Demo Video ── */
+    .demo-video { padding: 20px 40px 80px; max-width: 1100px; margin: 0 auto; text-align: center; }
+    .demo-video h2 { font-size: 32px; font-weight: 700; margin-bottom: 12px; }
+    .demo-sub { font-size: 17px; color: #718096; margin-bottom: 36px; }
+    .demo-container { position: relative; width: 100%; max-width: 960px; margin: 0 auto; aspect-ratio: 16/9; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,0.12); background: #0a0a0a; }
+    .demo-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
+
     /* ── Features ── */
     .features { padding: 60px 40px 80px; max-width: 1100px; margin: 0 auto; }
     .features h2 { text-align: center; font-size: 32px; font-weight: 700; margin-bottom: 48px; }
@@ -130,6 +137,7 @@ function landingPage() {
       .hero h1 { font-size: 32px; }
       .hero p { font-size: 16px; }
       .features { padding: 40px 20px; }
+      .demo-video { padding: 20px 20px 60px; }
     }
   </style>
 </head>
@@ -148,6 +156,14 @@ function landingPage() {
     <div class="hero-cta">
       <a href="/register" class="cta-primary">Start Free 14-Day Trial</a>
       <a href="/login" class="cta-secondary">Log In</a>
+    </div>
+  </section>
+
+  <section class="demo-video">
+    <h2>See How It Works</h2>
+    <p class="demo-sub">Guests scan a QR code, type their last name, and check themselves in — in under 90 seconds.</p>
+    <div class="demo-container">
+      <iframe src="/explainer.html" allowfullscreen></iframe>
     </div>
   </section>
 
