@@ -55,7 +55,7 @@
     padding: 0 32px;
   }
 
-  /* ── Monogram ── */
+  /* ââ Monogram ââ */
   .monogram {
     width: 64px; height: 64px; border-radius: 50%;
     border: 1px solid var(--ink);
@@ -74,7 +74,7 @@
     width: 100%; height: 100%; object-fit: cover;
   }
 
-  /* ── Welcome section ── */
+  /* ââ Welcome section ââ */
   .welcome {
     flex: 1;
     display: flex;
@@ -122,7 +122,7 @@
     text-wrap: pretty;
   }
 
-  /* ── Search section ── */
+  /* ââ Search section ââ */
   .search-section {
     margin-top: 36px;
   }
@@ -144,7 +144,7 @@
     color: var(--ink-55);
   }
 
-  /* ── Form fields (underline style) ── */
+  /* ââ Form fields (underline style) ââ */
   .field-group {
     margin-top: 36px;
   }
@@ -188,7 +188,7 @@
     color: var(--ink-30);
   }
 
-  /* ── Pill buttons ── */
+  /* ââ Pill buttons ââ */
   .btn-primary {
     width: 100%;
     height: 56px;
@@ -231,7 +231,7 @@
 
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* ── Help link ── */
+  /* ââ Help link ââ */
   .help-link {
     margin-top: 16px;
     text-align: center;
@@ -247,7 +247,7 @@
     text-underline-offset: 3px;
   }
 
-  /* ── Error message ── */
+  /* ââ Error message ââ */
   .error-msg {
     margin-top: 16px;
     padding: 14px 20px;
@@ -261,7 +261,7 @@
     line-height: 1.5;
   }
 
-  /* ── Results cards ── */
+  /* ââ Results cards ââ */
   .results-section {
     margin-top: 28px;
   }
@@ -366,7 +366,7 @@
     opacity: 0.5;
   }
 
-  /* ── No results ── */
+  /* ââ No results ââ */
   .no-results {
     padding: 32px 24px;
     text-align: center;
@@ -382,7 +382,7 @@
     line-height: 1.6;
   }
 
-  /* ── Step indicator ── */
+  /* ââ Step indicator ââ */
   .step-label {
     text-align: right;
     font-family: var(--body);
@@ -394,7 +394,7 @@
     padding: 16px 0 0;
   }
 
-  /* ── Back button ── */
+  /* ââ Back button ââ */
   .back-btn {
     background: transparent;
     border: none;
@@ -412,7 +412,7 @@
 
   .back-btn:hover { color: var(--ink); }
 
-  /* ── Footer ── */
+  /* ââ Footer ââ */
   .footer {
     text-align: center;
     padding: 24px 0;
@@ -424,14 +424,14 @@
 
   .footer a { color: var(--ink-40); text-decoration: none; }
 
-  /* ── Responsive ── */
+  /* ââ Responsive ââ */
   @media (max-width: 480px) {
     .container { padding: 0 24px; }
     .welcome h1 { font-size: 38px; }
     .search-section h2, .results-section h2 { font-size: 30px; }
   }
 
-  /* ── Hidden utility ── */
+  /* ââ Hidden utility ââ */
   .hidden { display: none !important; }
 </style>
 </head>
@@ -439,7 +439,7 @@
 
 <div class="container">
 
-  <!-- ═══ WELCOME SCREEN ═══ -->
+  <!-- âââ WELCOME SCREEN âââ -->
   <div id="welcomeScreen" class="welcome">
     <div class="monogram" id="monogram"></div>
     <div class="welcome-label">Welcome to</div>
@@ -448,7 +448,7 @@
     <p id="welcomeMsg">Skip the front desk. Locate your reservation and check in from this screen.</p>
   </div>
 
-  <!-- ═══ SEARCH FORM ═══ -->
+  <!-- âââ SEARCH FORM âââ -->
   <div id="searchForm">
     <button class="btn-primary" id="beginBtn" style="margin-top: 0;">
       Begin check-in
@@ -456,7 +456,7 @@
     </button>
   </div>
 
-  <!-- ═══ SEARCH SCREEN (initially hidden) ═══ -->
+  <!-- âââ SEARCH SCREEN (initially hidden) âââ -->
   <div id="searchScreen" class="hidden">
     <button class="back-btn" id="backToWelcome">
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 2L4 7l5 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -492,7 +492,7 @@
     </div>
   </div>
 
-  <!-- ═══ RESULTS SCREEN (initially hidden) ═══ -->
+  <!-- âââ RESULTS SCREEN (initially hidden) âââ -->
   <div id="resultsScreen" class="hidden">
     <button class="back-btn" id="backToSearch">
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 2L4 7l5 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -508,7 +508,7 @@
     </div>
   </div>
 
-  <!-- ═══ HELP + FOOTER ═══ -->
+  <!-- âââ HELP + FOOTER âââ -->
   <div style="flex: 1;"></div>
   <div class="help-link" id="helpSection">
     Need help? <a href="tel:1-855-919-7368">Call 1-855-919-7368</a>
@@ -520,10 +520,10 @@
 
 <script>
 (function() {
-  // ── State ──
+  // ââ State ââ
   let accountSlug = '', propertySlug = '', config = {};
 
-  // ── Elements ──
+  // ââ Elements ââ
   const $ = id => document.getElementById(id);
   const welcomeScreen = $('welcomeScreen');
   const searchForm = $('searchForm');
@@ -545,7 +545,7 @@
   const backToWelcome = $('backToWelcome');
   const backToSearch = $('backToSearch');
 
-  // ── Parse URL for slugs ──
+  // ââ Parse URL for slugs ââ
   const path = window.location.pathname;
   const parts = path.split('/').filter(Boolean);
   if (parts[0] === 'c' && parts.length >= 3) {
@@ -553,17 +553,26 @@
     propertySlug = parts[2];
   }
 
-  // ── Load property config ──
+  // ââ Load property config ââ
   async function loadProperty() {
     try {
-      const resp = await fetch(`/api/property/${accountSlug}/${propertySlug}`);
+      let resp;
+      if (accountSlug && propertySlug) {
+        resp = await fetch(`/api/property/${accountSlug}/${propertySlug}`);
+      } else {
+        resp = await fetch('/api/property-by-host');
+      }
       if (!resp.ok) throw new Error('Property not found');
       config = await resp.json();
+
+      // Store slugs from host-based resolution (custom domain)
+      if (config.accountSlug) accountSlug = config.accountSlug;
+      if (config.propertySlug) propertySlug = config.propertySlug;
 
       // Set property name
       const name = config.name || 'Check-In';
       propertyName.textContent = name;
-      document.title = name + ' — Guest Check-In';
+      document.title = name + ' â Guest Check-In';
 
       // Set monogram or logo
       if (config.logoUrl) {
@@ -595,7 +604,7 @@
     }
   }
 
-  // ── Screen transitions ──
+  // ââ Screen transitions ââ
   function showWelcome() {
     welcomeScreen.classList.remove('hidden');
     searchForm.classList.remove('hidden');
@@ -617,7 +626,7 @@
 
   function showResults(results, query) {
     if (results.length === 0) {
-      // Stay on search screen — show error inline so user can immediately retry
+      // Stay on search screen â show error inline so user can immediately retry
       searchError.textContent = 'No reservations found for "' + query + '". Check the spelling or try another name.';
       searchError.classList.remove('hidden');
       lastNameInput.select();
@@ -650,7 +659,7 @@
       const checkIn = formatDate(r.checkIn || r.checkInDate);
       const checkOut = formatDate(r.checkOut || r.checkOutDate);
       const nights = r.nights || calcNights(r.checkIn || r.checkInDate, r.checkOut || r.checkOutDate);
-      const guests = r.guestsCount || r.numberOfGuests || '—';
+      const guests = r.guestsCount || r.numberOfGuests || 'â';
       const conf = r.confirmationCode || r.confirmation || '';
 
       card.innerHTML = `
@@ -660,9 +669,9 @@
         </div>
         <div class="card-unit">${escapeHtml(unit)}</div>
         <div class="card-meta">
-          ${checkIn}${checkOut ? ' – ' + checkOut : ''}
-          ${nights ? '<span class="sep">·</span>' + nights + ' nights' : ''}
-          ${guests !== '—' ? '<span class="sep">·</span>' + guests + ' guest' + (guests > 1 ? 's' : '') : ''}
+          ${checkIn}${checkOut ? ' â ' + checkOut : ''}
+          ${nights ? '<span class="sep">Â·</span>' + nights + ' nights' : ''}
+          ${guests !== 'â' ? '<span class="sep">Â·</span>' + guests + ' guest' + (guests > 1 ? 's' : '') : ''}
         </div>
       `;
 
@@ -675,7 +684,7 @@
     });
   }
 
-  // ── Search ──
+  // ââ Search ââ
   async function doSearch() {
     const lastName = lastNameInput.value.trim();
     if (!lastName) return;
@@ -726,7 +735,7 @@
     }
   }
 
-  // ── Helpers ──
+  // ââ Helpers ââ
   function escapeHtml(str) {
     const div = document.createElement('div');
     div.textContent = str;
@@ -747,7 +756,7 @@
     return Math.round((b - a) / (1000 * 60 * 60 * 24));
   }
 
-  // ── Event listeners ──
+  // ââ Event listeners ââ
   beginBtn.addEventListener('click', showSearch);
   backToWelcome.addEventListener('click', showWelcome);
   backToSearch.addEventListener('click', () => {
@@ -777,7 +786,7 @@
 
   searchBtn.addEventListener('click', doSearch);
 
-  // ── Init ──
+  // ââ Init ââ
   loadProperty();
 })();
 </script>
