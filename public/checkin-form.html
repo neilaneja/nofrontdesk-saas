@@ -496,6 +496,8 @@
     }
     .error-banner.visible { display: block; }
   </style>
+<script src="https://js.stripe.com/v3/"></script>
+<script src="/checkin-payment.js"></script>
 </head>
 <body>
 
@@ -680,7 +682,7 @@
     <div class="nav-buttons" id="navButtons">
       <button class="btn btn-secondary" id="prevBtn" onclick="prevStep()" style="display:none;">Back</button>
       <button class="btn btn-primary" id="nextBtn" onclick="nextStep()">Continue</button>
-      <button class="btn btn-submit" id="submitBtn" onclick="submitForm()" style="display:none;">
+      <button class="btn btn-submit" id="submitBtn" onclick="handleSubmitWithPayment()" style="display:none;">
         Complete Check-In
       </button>
     </div>
@@ -760,6 +762,11 @@ async function init() {
 
     // Build enabled steps from config
     buildSteps();
+
+    // Initialize payment module if deposits are enabled
+    if (window.CheckinPayment) {
+      CheckinPayment.init(propertyConfig);
+    }
 
     // Build dynamic form fields
     buildGuestInfoFields();
@@ -1492,6 +1499,78 @@ document.addEventListener('keydown', (e) => {
 
 // Boot
 init();
+
+    // --- Payment Integration ---
+    let paymentCompleted = false;
+
+    async function handleSubmitWithPayment() {
+      if (!window.CheckinPayment || !CheckinPayment.isRequired() || paymentCompleted) {
+        return submitForm();
+      }
+      if (validateCurrentStep()) return;
+
+      const formArea = document.getElementById('formArea');
+      const sections = formArea.querySelectorAll('.form-section');
+      sections.forEach(function(s) { s.style.display = 'none'; });
+
+      let paymentSection = document.getElementById('paymentSection');
+      if (!paymentSection) {
+        paymentSection = document.createElement('div');
+        paymentSection.id = 'paymentSection';
+        paymentSection.className = 'form-section';
+        formArea.appendChild(paymentSection);
+      }
+      paymentSection.style.display = 'block';
+
+      var gName = '';
+      var gEmail = '';
+      var fnEl = document.getElementById('gi_first_name');
+      var emEl = document.getElementById('gi_email');
+      if (fnEl) gName = fnEl.value;
+      if (emEl) gEmail = emEl.value;
+
+      CheckinPayment.showPaymentStep(paymentSection, {name: gName, email: gEmail});
+
+      var submitBtn = document.getElementById('submitBtn');
+      if (submitBtn) {
+        submitBtn.textContent = 'Pay and Complete Check-in';
+        submitBtn.onclick = processPaymentAndSubmit;
+      }
+    }
+
+    async function processPaymentAndSubmit() {
+      var submitBtn = document.getElementById('submitBtn');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Processing Payment...';
+      }
+      try {
+        var result = await CheckinPayment.processPayment();
+        if (result && result.success) {
+          paymentCompleted = true;
+          if (submitBtn) submitBtn.textContent = 'Completing Check-in...';
+          await submitForm();
+        }
+      } catch (err) {
+        var ps = document.getElementById('paymentSection');
+        if (ps) {
+          var errDiv = ps.querySelector('.payment-error');
+          if (!errDiv) {
+            errDiv = document.createElement('div');
+            errDiv.className = 'payment-error';
+            errDiv.style.cssText = 'color:var(--error);margin-top:12px;padding:10px;border-radius:8px;background:rgba(239,68,68,0.1)';
+            ps.appendChild(errDiv);
+          }
+          errDiv.textContent = err.message || 'Payment failed. Please try again.';
+        }
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Try Payment Again';
+        }
+      }
+    }
+    // --- End Payment Integration ---
+
 </script>
 </body>
 </html>
