@@ -2,615 +2,371 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#2C3E50">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Guest Check-In</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    /* âââââââââââââââââââââââââââââââââââââââââââââ
-       CSS Variables â overridden by property config
-       âââââââââââââââââââââââââââââââââââââââââââââ */
     :root {
-      --brand: #2C3E50;
-      --accent: #E67E22;
-      --bg: #F8F9FA;
-      --card: #FFFFFF;
-      --text: #1A1A1A;
-      --text-muted: #6C757D;
-      --error: #DC3545;
-      --success: #28A745;
+      --brand: #2c3e50;
+      --accent: #e67e22;
+      --bg: #f0f2f5;
+      --card-bg: #ffffff;
+      --text-primary: #1a1a2e;
+      --text-secondary: #64748b;
+      --text-muted: #94a3b8;
+      --border: #e2e8f0;
+      --error-bg: #fef2f2;
+      --error-text: #dc2626;
+      --error-border: #fecaca;
+      --success-bg: #f0fdf4;
+      --success-text: #16a34a;
+      --success-border: #bbf7d0;
       --radius: 16px;
+      --radius-sm: 10px;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+      --shadow-md: 0 4px 20px rgba(0,0,0,0.08);
+      --shadow-lg: 0 8px 40px rgba(0,0,0,0.12);
+      --transition: 0.2s cubic-bezier(0.4,0,0.2,1);
     }
-
-    /* âââââââââââââââââââââââââââââââââââââââââââââ
-       Reset & Base
-       âââââââââââââââââââââââââââââââââââââââââââââ */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { font-size: 16px; -webkit-text-size-adjust: 100%; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100dvh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg); color: var(--text-primary);
+      min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+      -webkit-font-smoothing: antialiased;
     }
-
-    /* âââââââââââââââââââââââââââââââââââââââââââââ
-       Layout
-       âââââââââââââââââââââââââââââââââââââââââââââ */
-    .container {
-      width: 100%;
-      max-width: 440px;
-      padding: 24px 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-height: 100dvh;
-    }
-
-    /* âââââââââââââââââââââââââââââââââââââââââââââ
-       Header / Branding
-       âââââââââââââââââââââââââââââââââââââââââââââ */
-    .header { width: 100%; text-align: center; padding: 40px 0 32px; }
-    .logo { width: 80px; height: 80px; object-fit: contain; margin-bottom: 20px; border-radius: 12px; }
-    .logo-placeholder {
-      width: 80px; height: 80px; margin: 0 auto 20px;
-      border-radius: 12px; background: var(--brand);
-      display: flex; align-items: center; justify-content: center;
-    }
-    .logo-placeholder svg { width: 40px; height: 40px; fill: white; }
-    .welcome-text { font-size: 1.75rem; font-weight: 700; color: var(--brand); line-height: 1.2; margin-bottom: 8px; }
-    .subtitle { font-size: 1.05rem; color: var(--text-muted); line-height: 1.4; }
-
-    /* âââââââââââââââââââââââââââââââââââââââââââââ
-       Card / Form
-       âââââââââââââââââââââââââââââââââââââââââââââ */
-    .card {
-      background: var(--card); border-radius: var(--radius);
-      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-      padding: 28px 24px; width: 100%; margin-top: 8px;
-    }
-    .form-label {
-      display: block; font-size: 0.9rem; font-weight: 600;
-      color: var(--text-muted); text-transform: uppercase;
-      letter-spacing: 0.5px; margin-bottom: 10px;
-    }
-    .form-input {
-      width: 100%; padding: 16px 18px; font-size: 1.15rem;
-      border: 2px solid #DEE2E6; border-radius: 12px;
-      outline: none; transition: border-color 0.2s, box-shadow 0.2s;
-      background: var(--bg); -webkit-appearance: none; appearance: none;
-    }
-    .form-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(230, 126, 34, 0.15); }
-    .form-input.error { border-color: var(--error); box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.12); }
-    .btn {
-      display: block; width: 100%; padding: 16px; font-size: 1.1rem;
-      font-weight: 600; color: white; background: var(--accent);
-      border: none; border-radius: 12px; cursor: pointer; margin-top: 16px;
-      transition: background 0.2s, transform 0.1s;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .btn:active { transform: scale(0.98); }
-    .btn:disabled { background: #ADB5BD; cursor: not-allowed; transform: none; }
-
-    /* âââââââââââââââââââââââââââââââââââââââââââââ
-       Loading Spinner
-       âââââââââââââââââââââââââââââââââââââââââââââ */
-    .spinner {
-      display: inline-block; width: 20px; height: 20px;
-      border: 3px solid rgba(255,255,255,0.3); border-top-color: white;
-      border-radius: 50%; animation: spin 0.7s linear infinite;
-      vertical-align: middle; margin-right: 8px;
-    }
+    .loader-wrap { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: var(--bg); z-index: 1000; transition: opacity 0.4s ease; }
+    .loader-wrap.hidden { opacity: 0; pointer-events: none; }
+    .loader { width: 44px; height: 44px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* âââââââââââââââââââââââââââââââââââââââââââââ
-       Messages
-       âââââââââââââââââââââââââââââââââââââââââââââ */
-    .message {
-      padding: 14px 16px; border-radius: 10px; font-size: 0.95rem;
-      line-height: 1.4; margin-top: 16px; display: none;
+    .page-wrapper { width: 100%; max-width: 480px; padding: 24px 16px 40px; display: none; flex-direction: column; align-items: center; animation: fadeUp 0.5s ease; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    .brand-header { text-align: center; margin-bottom: 28px; width: 100%; }
+    .brand-logo { width: 80px; height: 80px; border-radius: 20px; object-fit: cover; margin-bottom: 16px; box-shadow: var(--shadow-md); }
+    .brand-logo-placeholder { width: 80px; height: 80px; border-radius: 20px; background: var(--brand); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 700; margin-bottom: 16px; box-shadow: var(--shadow-md); letter-spacing: -1px; }
+    .brand-name { font-size: 24px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; }
+    .brand-welcome { font-size: 15px; color: var(--text-secondary); line-height: 1.5; }
+    .card { background: var(--card-bg); border-radius: var(--radius); box-shadow: var(--shadow-md); padding: 28px 24px; width: 100%; margin-bottom: 16px; border: 1px solid var(--border); }
+    .form-label { display: block; font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .input-group { position: relative; display: flex; gap: 10px; }
+    .form-input { flex: 1; padding: 14px 16px; font-size: 16px; font-family: inherit; border: 2px solid var(--border); border-radius: var(--radius-sm); background: #fafbfc; color: var(--text-primary); outline: none; transition: var(--transition); }
+    .form-input:focus { border-color: var(--brand); background: #fff; box-shadow: 0 0 0 3px rgba(44,62,80,0.08); }
+    .form-input::placeholder { color: var(--text-muted); }
+    .btn { padding: 14px 24px; font-size: 15px; font-weight: 600; font-family: inherit; border: none; border-radius: var(--radius-sm); cursor: pointer; transition: var(--transition); display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-width: 120px; }
+    .btn-primary { background: var(--brand); color: #fff; }
+    .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; filter: none; }
+    .btn-secondary { background: var(--bg); color: var(--text-primary); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: #e8eaed; }
+    .btn .spinner-sm { width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; }
+    .msg { padding: 12px 16px; border-radius: var(--radius-sm); font-size: 14px; line-height: 1.5; margin-bottom: 16px; display: none; }
+    .msg.visible { display: block; animation: fadeUp 0.3s ease; }
+    .msg-error { background: var(--error-bg); color: var(--error-text); border: 1px solid var(--error-border); }
+    .msg-success { background: var(--success-bg); color: var(--success-text); border: 1px solid var(--success-border); }
+    .confirm-card { display: none; text-align: center; }
+    .confirm-card .card-title { font-size: 17px; font-weight: 600; margin-bottom: 6px; }
+    .confirm-card .card-subtitle { font-size: 14px; color: var(--text-secondary); margin-bottom: 20px; }
+    .confirm-input { text-align: center; font-size: 24px; font-weight: 600; letter-spacing: 6px; text-transform: uppercase; padding: 16px; }
+    .confirm-actions { display: flex; gap: 10px; margin-top: 16px; }
+    .confirm-actions .btn { flex: 1; }
+    .disambig-section { display: none; }
+    .disambig-title { font-size: 15px; color: var(--text-secondary); margin-bottom: 16px; text-align: center; }
+    .res-card { padding: 16px; border: 2px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 10px; cursor: pointer; transition: var(--transition); display: flex; align-items: center; gap: 14px; }
+    .res-card:hover { border-color: var(--brand); background: rgba(44,62,80,0.02); transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+    .res-icon { width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, var(--brand), var(--accent)); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+    .res-info { flex: 1; min-width: 0; }
+    .res-name { font-weight: 600; font-size: 15px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .res-listing { font-size: 13px; color: var(--text-secondary); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .res-dates { font-size: 12px; color: var(--text-muted); }
+    .res-arrow { color: var(--text-muted); font-size: 20px; flex-shrink: 0; }
+    .redirect-screen { display: none; text-align: center; padding: 32px 24px; }
+    .redirect-check { width: 72px; height: 72px; border-radius: 50%; background: var(--success-bg); color: var(--success-text); display: inline-flex; align-items: center; justify-content: center; font-size: 36px; margin-bottom: 20px; border: 2px solid var(--success-border); }
+    .redirect-title { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+    .redirect-sub { font-size: 14px; color: var(--text-secondary); margin-bottom: 4px; line-height: 1.5; }
+    .redirect-guest { font-size: 16px; font-weight: 600; color: var(--brand); margin-bottom: 4px; }
+    .redirect-dates { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
+    .system-error-screen { display: none; text-align: center; padding: 40px 24px; }
+    .system-error-icon { font-size: 48px; margin-bottom: 16px; }
+    .system-error-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+    .system-error-text { font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 20px; }
+    .system-error-phone a { color: var(--brand); font-weight: 600; text-decoration: none; }
+    .help-footer { text-align: center; margin-top: 8px; padding: 12px; }
+    .help-footer a { font-size: 13px; color: var(--text-muted); text-decoration: none; transition: var(--transition); }
+    .help-footer a:hover { color: var(--text-secondary); }
+    .powered-by { margin-top: 24px; text-align: center; font-size: 11px; color: var(--text-muted); letter-spacing: 0.3px; }
+    .powered-by a { color: var(--text-muted); text-decoration: none; font-weight: 500; }
+    .powered-by a:hover { color: var(--text-secondary); }
+    @media (max-width: 480px) {
+      .page-wrapper { padding: 16px 12px 32px; }
+      .card { padding: 24px 18px; }
+      .brand-name { font-size: 20px; }
+      .brand-logo, .brand-logo-placeholder { width: 64px; height: 64px; font-size: 26px; border-radius: 16px; }
     }
-    .message.error { background: #FFF5F5; color: var(--error); border: 1px solid #FFCDD2; }
-    .message.success { background: #F0FFF4; color: var(--success); border: 1px solid #C8E6C9; }
-    .message.visible { display: block; }
-
-    /* âââââââââââââââââââââââââââââââââââââââââââââ
-       Disambiguation
-       âââââââââââââââââââââââââââââââââââââââââââââ */
-    .disambig { display: none; width: 100%; margin-top: 16px; }
-    .disambig.visible { display: block; }
-    .disambig-title { font-size: 1rem; font-weight: 600; margin-bottom: 12px; color: var(--text); }
-    .res-option {
-      background: var(--card); border: 2px solid #DEE2E6;
-      border-radius: 12px; padding: 16px; margin-bottom: 10px;
-      cursor: pointer; transition: border-color 0.2s, box-shadow 0.2s;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .res-option:active, .res-option:hover { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(230, 126, 34, 0.12); }
-    .res-name { font-size: 1.1rem; font-weight: 600; color: var(--text); }
-    .res-dates { font-size: 0.9rem; color: var(--text-muted); margin-top: 4px; }
-    .res-listing { font-size: 0.85rem; color: var(--text-muted); margin-top: 2px; }
-
-    /* âââââââââââââââââââââââââââââââââââââââââââââ
-       Redirect screen
-       âââââââââââââââââââââââââââââââââââââââââââââ */
-    .redirect-screen { display: none; text-align: center; padding: 40px 24px; }
-    .redirect-screen.visible { display: block; }
-    .redirect-icon {
-      width: 64px; height: 64px; margin: 0 auto 20px;
-      background: var(--success); border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .redirect-icon svg { width: 32px; height: 32px; fill: white; }
-    .redirect-text { font-size: 1.2rem; font-weight: 600; color: var(--text); margin-bottom: 8px; }
-    .redirect-sub { font-size: 0.95rem; color: var(--text-muted); }
-
-    /* âââââââââââââââââââââââââââââââââââââââââââââ
-       Confirmation Code
-       âââââââââââââââââââââââââââââââââââââââââââââ */
-    .confirm-code-input {
-      text-transform: uppercase; letter-spacing: 4px;
-      text-align: center; font-size: 1.5rem; font-weight: bold;
-    }
-
-    /* âââââââââââââââââââââââââââââââââââââââââââââ
-       Help footer
-       âââââââââââââââââââââââââââââââââââââââââââââ */
-    .help-link { margin-top: 32px; text-align: center; font-size: 0.9rem; color: var(--text-muted); }
-    .help-link a { color: var(--accent); text-decoration: none; font-weight: 600; }
-
-    /* âââââââââââââââââââââââââââââââââââââââââââââ
-       System error
-       âââââââââââââââââââââââââââââââââââââââââââââ */
-    .system-error { display: none; text-align: center; padding: 40px 24px; }
-    .system-error.visible { display: block; }
-    .system-error-icon { font-size: 3rem; margin-bottom: 16px; }
-    .system-error-title { font-size: 1.3rem; font-weight: 700; margin-bottom: 8px; }
-    .system-error-text { font-size: 1rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 20px; }
-    .phone-btn {
-      display: inline-flex; align-items: center; gap: 8px;
-      padding: 14px 28px; background: var(--brand); color: white;
-      border-radius: 12px; text-decoration: none; font-size: 1.1rem; font-weight: 600;
-    }
-
-    /* âââââââââââââââââââââââââââââââââââââââââââââ
-       Page loader
-       âââââââââââââââââââââââââââââââââââââââââââââ */
-    .page-loader { display: flex; align-items: center; justify-content: center; min-height: 100dvh; }
-    .page-loader .spinner { width: 40px; height: 40px; border-width: 4px; border-color: #DEE2E6; border-top-color: var(--accent); }
   </style>
 </head>
 <body>
-
-  <!-- Initial loader while we fetch property config -->
-  <div id="pageLoader" class="page-loader">
-    <div class="spinner"></div>
-  </div>
-
-  <!-- Main content (hidden until property loads) -->
-  <div class="container" id="mainContent" style="display:none;">
-
-    <!-- ââ Header âââââââââââââââââââââââââââ -->
-    <div class="header">
-      <div id="logoContainer"></div>
-      <div class="welcome-text" id="welcomeText">Welcome!</div>
-      <div class="subtitle">Enter your last name to check in.</div>
+  <div class="loader-wrap" id="loaderWrap"><div class="loader"></div></div>
+  <div class="page-wrapper" id="mainContent">
+    <div class="brand-header" id="brandHeader">
+      <div class="brand-logo-placeholder" id="logoArea">?</div>
+      <div class="brand-name" id="brandName">Welcome</div>
+      <div class="brand-welcome" id="welcomeText">Enter your last name to find your reservation.</div>
     </div>
-
-    <!-- ââ Search Form ââââââââââââââââââââââââ -->
     <div class="card" id="searchCard">
-      <label class="form-label" for="lastNameInput">Last Name</label>
-      <input type="text" id="lastNameInput" class="form-input"
-        placeholder="e.g. Smith" autocomplete="family-name"
-        autocapitalize="words" spellcheck="false" enterkeyhint="search">
-      <button class="btn" id="searchBtn" onclick="doLookup()">
-        Find My Reservation
-      </button>
-      <div class="message error" id="errorMsg"></div>
-      <div class="message success" id="successMsg"></div>
-    </div>
-
-    <!-- ââ Confirmation Code Step ââââââââââââ -->
-    <div class="card" id="confirmCard" style="display:none;">
-      <h2 style="margin-top:0;color:var(--brand);font-size:1.3rem;">Verify Your Reservation</h2>
-      <p style="color:var(--text-muted);margin:16px 0;font-size:0.95rem;">
-        Please enter the last 4 characters of your confirmation code to proceed.
-      </p>
-      <div style="margin-bottom:18px;">
-        <label class="form-label" for="confirmInput">Last 4 of Confirmation Code</label>
-        <input type="text" id="confirmInput" class="form-input confirm-code-input"
-          placeholder="e.g. AB12" maxlength="4" autocomplete="off">
-        <div style="font-size:0.8rem;color:var(--text-muted);margin-top:6px;">Found in your booking confirmation email</div>
+      <label class="form-label" for="lastNameInput">Last Name on Reservation</label>
+      <div class="input-group">
+        <input type="text" id="lastNameInput" class="form-input" placeholder="e.g. Smith" autocomplete="off" autocapitalize="words">
+        <button class="btn btn-primary" id="searchBtn" onclick="doLookup()">Search</button>
       </div>
-      <button class="btn" id="confirmBtn" onclick="doConfirm()">Verify &amp; Check In</button>
-      <div class="message error" id="confirmErrorMsg" style="margin-top:12px;"></div>
-      <button onclick="backToSearch()" style="background:none;border:none;color:var(--text-muted);font-size:0.9rem;margin-top:16px;cursor:pointer;width:100%;padding:8px;text-align:center;">
-        &larr; Back to Search
-      </button>
     </div>
-
-    <!-- ââ Multiple results (disambiguation) ââ -->
-    <div class="disambig" id="disambigSection">
+    <div class="msg msg-error" id="errorMsg"></div>
+    <div class="msg msg-success" id="successMsg"></div>
+    <div class="card confirm-card" id="confirmCard">
+      <div class="card-title">Verification Required</div>
+      <div class="card-subtitle">Enter the last 4 characters of your confirmation code.</div>
+      <input type="text" id="confirmInput" class="form-input confirm-input" maxlength="4" placeholder="----" autocomplete="off">
+      <div class="msg msg-error" id="confirmErrorMsg" style="margin-top:12px;"></div>
+      <div class="confirm-actions">
+        <button class="btn btn-secondary" onclick="backToSearch()">Back</button>
+        <button class="btn btn-primary" id="confirmBtn" onclick="doConfirm()">Verify</button>
+      </div>
+    </div>
+    <div class="disambig-section" id="disambigSection">
       <div class="disambig-title">We found multiple reservations. Please select yours:</div>
       <div id="disambigList"></div>
     </div>
-
-    <!-- ââ Redirect confirmation ââââââââââââ -->
-    <div class="redirect-screen" id="redirectScreen">
-      <div class="redirect-icon">
-        <svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>
-      </div>
-      <div class="redirect-text">Reservation Found!</div>
+    <div class="card redirect-screen" id="redirectScreen">
+      <div class="redirect-check">&#10003;</div>
+      <div class="redirect-title">Reservation Found!</div>
+      <div class="redirect-guest" id="redirectGuest"></div>
+      <div class="redirect-dates" id="redirectDates"></div>
       <div class="redirect-sub" id="redirectSub">Redirecting you to your check-in form...</div>
     </div>
-
-    <!-- ââ System Error âââââââââââââââââââââ -->
-    <div class="system-error" id="systemError">
+    <div class="system-error-screen" id="systemError">
       <div class="system-error-icon">&#9888;&#65039;</div>
       <div class="system-error-title">Temporarily Unavailable</div>
-      <div class="system-error-text">
-        Our check-in system is experiencing issues.<br>
-        Please call us for immediate assistance.
-      </div>
-      <a href="#" id="phoneBtn" class="phone-btn">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M6.62 10.79c1.44 2.83 3.76 5.15 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
-        <span id="phoneBtnText">Call Us</span>
-      </a>
+      <div class="system-error-text">Our check-in system is experiencing issues. Please try again in a few minutes.</div>
+      <div class="system-error-phone" id="errorPhone"></div>
+      <button class="btn btn-primary" onclick="location.reload()" style="margin-top:16px;">Try Again</button>
     </div>
-
-    <!-- ââ Help footer ââââââââââââââââââââââââ -->
-    <div class="help-link" id="helpFooter">
-      Need help? <a href="#" id="helpPhone">Call us</a>
+    <div class="help-footer" id="helpFooter" style="display:none;">
+      <a id="helpLink" href="#">Need help? Call us</a>
     </div>
+    <div class="powered-by">Powered by <a href="https://nofrontdesk.com" target="_blank">NoFrontDesk</a></div>
   </div>
-
 <script>
-// âââââââââââââââââââââââââââââââââââââââââââââ
-// Configuration & State
-// âââââââââââââââââââââââââââââââââââââââââââââ
-let propertyConfig = null;
-let propertySlug = '';
-let requireConfirmationCode = false;
+  let accountSlug = '';
+  let propertySlug = '';
+  let propertyConfig = {};
+  let currentLastName = '';
 
-let accountSlug = '';
-const pathParts = window.location.pathname.split('/').filter(Boolean);
-if (pathParts[0] === 'c' && pathParts[1] && pathParts[2]) {
-  accountSlug = pathParts[1];
-  propertySlug = pathParts[2];
-}
+  const pathParts = window.location.pathname.replace(/^\//, '').split('/');
+  if (pathParts[0] === 'c' && pathParts.length >= 3) {
+    accountSlug = decodeURIComponent(pathParts[1]);
+    propertySlug = decodeURIComponent(pathParts[2]);
+  }
 
-// âââââââââââââââââââââââââââââââââââââââââââââ
-// Initialize: Load property branding
-// âââââââââââââââââââââââââââââââââââââââââââââ
-async function init() {
-  try {
-    let url = (accountSlug && propertySlug)
-      ? `/api/property/${accountSlug}/${propertySlug}`
-      : '/api/property/default/default';
-
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('Property not found');
-
-    propertyConfig = await res.json();
-    requireConfirmationCode = propertyConfig.requireConfirmationCode || false;
-
-    // Apply branding
-    document.documentElement.style.setProperty('--brand', propertyConfig.brandColor);
-    document.documentElement.style.setProperty('--accent', propertyConfig.accentColor);
-    document.querySelector('meta[name="theme-color"]').content = propertyConfig.brandColor;
-
-    // Logo
-    const logoContainer = document.getElementById('logoContainer');
-    if (propertyConfig.logoUrl && propertyConfig.logoUrl !== '') {
-      const img = document.createElement('img');
-      img.src = propertyConfig.logoUrl;
-      img.alt = propertyConfig.name;
-      img.className = 'logo';
-      img.onerror = () => { showPlaceholderLogo(logoContainer, propertyConfig.name); };
-      logoContainer.appendChild(img);
-    } else {
-      showPlaceholderLogo(logoContainer, propertyConfig.name);
+  async function init() {
+    if (!accountSlug || !propertySlug) {
+      try {
+        const cdResp = await fetch('/api/custom-domain-info');
+        if (cdResp.ok) {
+          const cdData = await cdResp.json();
+          accountSlug = cdData.accountSlug;
+          propertySlug = cdData.propertySlug;
+        }
+      } catch (e) {}
     }
-
-    // Text
-    document.getElementById('welcomeText').textContent = propertyConfig.welcomeMessage;
-    document.title = `Check In â ${propertyConfig.name}`;
-
-    // Phone links
-    const phone = propertyConfig.fallbackPhone;
-    const phoneHref = 'tel:' + phone.replace(/[^+\d]/g, '');
-    document.getElementById('helpPhone').href = phoneHref;
-    document.getElementById('helpPhone').textContent = `Call ${phone}`;
-    document.getElementById('phoneBtn').href = phoneHref;
-    document.getElementById('phoneBtnText').textContent = `Call ${phone}`;
-
-    // Show content
-    document.getElementById('pageLoader').style.display = 'none';
+    if (!accountSlug || !propertySlug) { showSystemError(); return; }
+    try {
+      const resp = await fetch('/api/property/' + encodeURIComponent(accountSlug) + '/' + encodeURIComponent(propertySlug));
+      if (!resp.ok) throw new Error('Not found');
+      propertyConfig = await resp.json();
+      applyBranding(propertyConfig);
+    } catch (err) { showSystemError(); return; }
+    document.getElementById('loaderWrap').classList.add('hidden');
     document.getElementById('mainContent').style.display = 'flex';
-
-    // Auto-focus
-    setTimeout(() => document.getElementById('lastNameInput').focus(), 300);
-
-  } catch (err) {
-    console.error('Init error:', err);
-    document.getElementById('pageLoader').style.display = 'none';
-    document.getElementById('mainContent').style.display = 'flex';
-    showSystemError();
-  }
-}
-
-function showPlaceholderLogo(container, name) {
-  const div = document.createElement('div');
-  div.className = 'logo-placeholder';
-  div.innerHTML = `<svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>`;
-  container.appendChild(div);
-}
-
-// âââââââââââââââââââââââââââââââââââââââââââââ
-// Reservation Lookup
-// âââââââââââââââââââââââââââââââââââââââââââââ
-async function doLookup() {
-  const input = document.getElementById('lastNameInput');
-  const btn = document.getElementById('searchBtn');
-  const lastName = input.value.trim();
-
-  hideMessages();
-  input.classList.remove('error');
-  document.getElementById('disambigSection').classList.remove('visible');
-
-  if (!lastName) {
-    input.classList.add('error');
-    showError('Please enter your last name.');
-    input.focus();
-    return;
+    document.getElementById('lastNameInput').focus();
+    document.getElementById('lastNameInput').addEventListener('keydown', function(e) { if (e.key === 'Enter') doLookup(); });
+    document.getElementById('confirmInput').addEventListener('keydown', function(e) { if (e.key === 'Enter') doConfirm(); });
   }
 
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span> Searching...';
+  function applyBranding(config) {
+    if (config.brandColor) document.documentElement.style.setProperty('--brand', config.brandColor);
+    if (config.accentColor) document.documentElement.style.setProperty('--accent', config.accentColor);
+    if (config.name) {
+      document.getElementById('brandName').textContent = config.name;
+      document.title = config.name + ' - Guest Check-In';
+    }
+    if (config.welcomeMessage) document.getElementById('welcomeText').textContent = config.welcomeMessage;
+    const logoArea = document.getElementById('logoArea');
+    if (config.logoUrl) {
+      const img = document.createElement('img');
+      img.src = config.logoUrl;
+      img.alt = config.name || 'Logo';
+      img.className = 'brand-logo';
+      img.onerror = function() { showPlaceholderLogo(logoArea, config.name); };
+      logoArea.replaceWith(img);
+    } else {
+      showPlaceholderLogo(logoArea, config.name);
+    }
+    if (config.fallbackPhone) {
+      document.getElementById('helpFooter').style.display = 'block';
+      const link = document.getElementById('helpLink');
+      link.href = 'tel:' + config.fallbackPhone.replace(/[^+\d]/g, '');
+      link.textContent = 'Need help? Call ' + config.fallbackPhone;
+      document.getElementById('errorPhone').innerHTML = 'Or call us: <a href="tel:' + config.fallbackPhone.replace(/[^+\d]/g, '') + '">' + escapeHtml(config.fallbackPhone) + '</a>';
+    }
+  }
 
-  try {
-    const controller = new AbortController();
+  function showPlaceholderLogo(el, name) {
+    const initials = (name || '?').split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+    el.className = 'brand-logo-placeholder';
+    el.textContent = initials;
+  }
+  async function doLookup() {
+    const lastName = document.getElementById('lastNameInput').value.trim();
+    if (!lastName) { showError('Please enter your last name.'); return; }
+    currentLastName = lastName;
+    hideMessages();
+    setSearchLoading(true);
+    try {
+      const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 20000);
       const res = await fetch('/api/lookup', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ lastName, accountSlug, propertySlug }),
-        signal: controller.signal,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lastName, accountSlug, propertySlug }),
+        signal: controller.signal
       });
-      clearTimeout(timeoutId)
-
-    if (!res.ok) {
-      if (res.status >= 500) throw new Error('Server error');
+      clearTimeout(timeoutId);
+      if (!res.ok) throw new Error('Server error');
       const data = await res.json();
-      showError(data.message || 'Something went wrong.');
-      return;
-    }
-
-    const data = await res.json();
-
-    if (data.status === 'not_found') {
-      input.classList.add('error');
-      showError(data.message);
-      input.focus();
-      input.select();
-      return;
-
-   }
-
-    if (data.status === 'needsConfirmation') {
-      showConfirmationCode();
-      return;
-    }
-
-    if (data.status === 'found') {
-      if (requireConfirmationCode) {
-        showConfirmationCode();
-      } else {
-        redirectToCheckIn(data.reservation);
-      }
-      return;
-    }
-
-    if (data.status === 'multiple') {
-      showDisambiguation(data.reservations);
-      return;
-    }
-
-  } catch (err) {
-    console.error('Lookup error:', err);
-    showError('Search timed out or failed. Please try again.');
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = 'Find My Reservation';
-  }
-}
-
-// âââââââââââââââââââââââââââââââââââââââââââââ
-// Confirmation Code
-// âââââââââââââââââââââââââââââââââââââââââââââ
-function showConfirmationCode() {
-  document.getElementById('searchCard').style.display = 'none';
-  document.getElementById('disambigSection').classList.remove('visible');
-  document.getElementById('confirmCard').style.display = 'block';
-
-  const errorMsg = document.getElementById('confirmErrorMsg');
-  errorMsg.style.display = 'none';
-  errorMsg.textContent = '';
-  document.getElementById('confirmInput').value = '';
-
-  setTimeout(() => document.getElementById('confirmInput').focus(), 200);
-}
-
-async function doConfirm() {
-  const confirmationCode = document.getElementById('confirmInput').value.trim();
-  const errorMsg = document.getElementById('confirmErrorMsg');
-  const btn = document.getElementById('confirmBtn');
-
-  if (!confirmationCode) {
-    errorMsg.textContent = 'Please enter a confirmation code';
-    errorMsg.style.display = 'block';
-    return;
-  }
-  if (confirmationCode.length !== 4) {
-    errorMsg.textContent = 'Confirmation code must be 4 characters';
-    errorMsg.style.display = 'block';
-    return;
+      if (data.status === 'found') { redirectToCheckIn(data.reservation); }
+      else if (data.status === 'multiple') { showDisambiguation(data.reservations); }
+      else if (data.status === 'needsConfirmation') { showConfirmationCode(); }
+      else if (data.status === 'not_found') { showError(data.message || 'No reservation found. Please check the spelling of your last name and try again.'); }
+      else if (data.error === 'system_error') { showSystemError(); }
+      else { showError(data.message || 'Something went wrong. Please try again.'); }
+    } catch (err) {
+      if (err.name === 'AbortError') { showError('Search timed out. Please try again.'); }
+      else { showError('Search failed. Please try again or call us for help.'); }
+    } finally { setSearchLoading(false); }
   }
 
-  btn.disabled = true;
-  btn.textContent = 'Verifying...';
-  errorMsg.style.display = 'none';
+  function setSearchLoading(loading) {
+    const btn = document.getElementById('searchBtn');
+    const input = document.getElementById('lastNameInput');
+    if (loading) { btn.disabled = true; btn.innerHTML = '<div class="spinner-sm"></div>'; input.disabled = true; }
+    else { btn.disabled = false; btn.innerHTML = 'Search'; input.disabled = false; }
+  }
 
-  const lastName = document.getElementById('lastNameInput').value.trim();
+  function showConfirmationCode() {
+    document.getElementById('searchCard').style.display = 'none';
+    document.getElementById('confirmCard').style.display = 'block';
+    document.getElementById('confirmInput').value = '';
+    document.getElementById('confirmInput').focus();
+  }
 
-  try {
-    const res = await fetch('/api/lookup', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ lastName, accountSlug, propertySlug, confirmationCode }),
+  async function doConfirm() {
+    const code = document.getElementById('confirmInput').value.trim();
+    if (!code || code.length < 4) {
+      document.getElementById('confirmErrorMsg').textContent = 'Please enter the last 4 characters.';
+      document.getElementById('confirmErrorMsg').classList.add('visible');
+      return;
+    }
+    const btn = document.getElementById('confirmBtn');
+    btn.disabled = true; btn.innerHTML = '<div class="spinner-sm"></div>';
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 20000);
+      const res = await fetch('/api/lookup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lastName: currentLastName, accountSlug, propertySlug, confirmationCode: code }),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      const data = await res.json();
+      if (data.status === 'found') { redirectToCheckIn(data.reservation); }
+      else if (data.status === 'multiple') { showDisambiguation(data.reservations); }
+      else { document.getElementById('confirmErrorMsg').textContent = data.message || 'Invalid code.'; document.getElementById('confirmErrorMsg').classList.add('visible'); }
+    } catch (err) {
+      document.getElementById('confirmErrorMsg').textContent = 'Verification failed. Please try again.';
+      document.getElementById('confirmErrorMsg').classList.add('visible');
+    } finally { btn.disabled = false; btn.innerHTML = 'Verify'; }
+  }
+
+  function backToSearch() {
+    document.getElementById('confirmCard').style.display = 'none';
+    document.getElementById('confirmErrorMsg').classList.remove('visible');
+    document.getElementById('searchCard').style.display = 'block';
+    document.getElementById('lastNameInput').focus();
+  }
+  function redirectToCheckIn(reservation) {
+    document.getElementById('searchCard').style.display = 'none';
+    document.getElementById('confirmCard').style.display = 'none';
+    document.getElementById('disambigSection').style.display = 'none';
+    hideMessages();
+    const screen = document.getElementById('redirectScreen');
+    screen.style.display = 'block';
+    if (reservation.guestFirstName) document.getElementById('redirectGuest').textContent = 'Welcome, ' + reservation.guestFirstName + '!';
+    if (reservation.checkIn && reservation.checkOut) document.getElementById('redirectDates').textContent = formatDate(reservation.checkIn) + ' \u2192 ' + formatDate(reservation.checkOut);
+    if (reservation.listingName) document.getElementById('redirectSub').textContent = reservation.listingName;
+    if (reservation.checkInFormUrl) { setTimeout(() => { window.location.href = reservation.checkInFormUrl; }, 2500); }
+    else { document.getElementById('redirectSub').textContent = 'Check-in form is not available. Please contact the property.'; }
+  }
+
+  function showDisambiguation(reservations) {
+    document.getElementById('searchCard').style.display = 'none';
+    hideMessages();
+    const list = document.getElementById('disambigList');
+    list.innerHTML = '';
+    reservations.forEach(r => {
+      const checkIn = formatDate(r.checkIn);
+      const checkOut = formatDate(r.checkOut);
+      const div = document.createElement('div');
+      div.className = 'res-card';
+      div.onclick = () => redirectToCheckIn(r);
+      div.innerHTML = '<div class="res-icon">' + escapeHtml((r.guestFirstName || '?')[0]) + '</div>' +
+        '<div class="res-info"><div class="res-name">' + escapeHtml(r.guestFirstName || '') + ' ' + escapeHtml(r.guestLastName || '') + '</div>' +
+        '<div class="res-listing">' + escapeHtml(r.listingName || '') + '</div>' +
+        '<div class="res-dates">' + checkIn + ' \u2192 ' + checkOut + '</div></div>' +
+        '<div class="res-arrow">\u203A</div>';
+      list.appendChild(div);
     });
-
-    const data = await res.json();
-
-    if (data.status === 'found') {
-      redirectToCheckIn(data.reservation);
-    } else if (data.status === 'multiple') {
-      document.getElementById('confirmCard').style.display = 'none';
-      showDisambiguation(data.reservations);
-    } else {
-      errorMsg.textContent = data.message || 'Invalid confirmation code. Please check and try again.';
-      errorMsg.style.display = 'block';
-      btn.disabled = false;
-      btn.textContent = 'Verify & Check In';
-    }
-  } catch (err) {
-    errorMsg.textContent = 'An error occurred. Please try again.';
-    errorMsg.style.display = 'block';
-    btn.disabled = false;
-    btn.textContent = 'Verify & Check In';
+    document.getElementById('disambigSection').style.display = 'block';
   }
-}
 
-function backToSearch() {
-  document.getElementById('confirmCard').style.display = 'none';
-  document.getElementById('searchCard').style.display = 'block';
-  document.getElementById('confirmInput').value = '';
-  document.getElementById('lastNameInput').focus();
-}
-
-// âââââââââââââââââââââââââââââââââââââââââââââ
-// Redirect to check-in form (PMS native OR NoFrontDesk built-in)
-// âââââââââââââââââââââââââââââââââââââââââââââ
-function redirectToCheckIn(reservation) {
-  document.getElementById('searchCard').style.display = 'none';
-  document.getElementById('confirmCard').style.display = 'none';
-  document.getElementById('helpFooter').style.display = 'none';
-  document.getElementById('redirectScreen').classList.add('visible');
-
-  const checkInUrl = reservation.checkInFormUrl;
-
-  if (checkInUrl && checkInUrl.trim() !== '') {
-    // PMS has a native check-in form â redirect to it
-    document.getElementById('redirectSub').textContent = 'Redirecting you to your check-in form...';
-    setTimeout(() => {
-      window.location.href = checkInUrl;
-    }, 1800);
-  } else {
-    // No PMS native form â redirect to NoFrontDesk built-in check-in form
-    document.getElementById('redirectSub').textContent = 'Taking you to complete your check-in...';
-
-    const params = new URLSearchParams({
-      account: accountSlug,
-      property: propertySlug,
-      reservation: reservation.id || '',
-      firstName: reservation.guestFirstName || '',
-      lastName: reservation.guestLastName || '',
-      checkIn: reservation.checkIn || '',
-      checkOut: reservation.checkOut || '',
-      listing: reservation.listingName || '',
-    });
-
-    setTimeout(() => {
-      window.location.href = `/checkin-form?${params.toString()}`;
-    }, 1800);
+  function showSystemError() {
+    document.getElementById('loaderWrap').classList.add('hidden');
+    document.getElementById('mainContent').style.display = 'flex';
+    document.getElementById('searchCard').style.display = 'none';
+    document.getElementById('systemError').style.display = 'block';
+    document.getElementById('brandHeader').style.display = 'none';
   }
-}
 
-// âââââââââââââââââââââââââââââââââââââââââââââ
-// Disambiguation: multiple reservations
-// âââââââââââââââââââââââââââââââââââââââââââââ
-function showDisambiguation(reservations) {
-  const list = document.getElementById('disambigList');
-  list.innerHTML = '';
+  function showError(msg) { const el = document.getElementById('errorMsg'); el.textContent = msg; el.classList.add('visible'); document.getElementById('successMsg').classList.remove('visible'); }
+  function showSuccess(msg) { const el = document.getElementById('successMsg'); el.textContent = msg; el.classList.add('visible'); document.getElementById('errorMsg').classList.remove('visible'); }
+  function hideMessages() { document.getElementById('errorMsg').classList.remove('visible'); document.getElementById('successMsg').classList.remove('visible'); document.getElementById('confirmErrorMsg').classList.remove('visible'); }
 
-  reservations.forEach(r => {
+  function formatDate(dateStr) {
+    if (!dateStr) return '';
+    try { const d = new Date(dateStr + 'T00:00:00'); return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
+    catch (e) { return dateStr; }
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
     const div = document.createElement('div');
-    div.className = 'res-option';
-    div.onclick = () => redirectToCheckIn(r);
-
-    const checkIn = formatDate(r.checkIn);
-    const checkOut = formatDate(r.checkOut);
-
-    div.innerHTML = `
-      <div class="res-name">${escapeHtml(r.guestFirstName)} ${escapeHtml(r.guestLastName || '')}</div>
-      <div class="res-dates">${checkIn} â ${checkOut}</div>
-      ${r.listingName ? `<div class="res-listing">${escapeHtml(r.listingName)}</div>` : ''}
-    `;
-    list.appendChild(div);
-  });
-
-  document.getElementById('disambigSection').classList.add('visible');
-}
-
-// âââââââââââââââââââââââââââââââââââââââââââââ
-// System error
-// âââââââââââââââââââââââââââââââââââââââââââââ
-function showSystemError() {
-  document.getElementById('searchCard').style.display = 'none';
-  document.getElementById('confirmCard').style.display = 'none';
-  document.getElementById('disambigSection').classList.remove('visible');
-  document.getElementById('helpFooter').style.display = 'none';
-  document.getElementById('systemError').classList.add('visible');
-}
-
-// âââââââââââââââââââââââââââââââââââââââââââââ
-// UI Helpers
-// âââââââââââââââââââââââââââââââââââââââââââââ
-function showError(msg) {
-  const el = document.getElementById('errorMsg');
-  el.textContent = msg;
-  el.classList.add('visible');
-}
-
-function hideMessages() {
-  document.querySelectorAll('.message').forEach(m => m.classList.remove('visible'));
-}
-
-function formatDate(dateStr) {
-  if (!dateStr) return 'â';
-  try { return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
-  catch { return dateStr; }
-}
-
-function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
-
-// Enter key
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') {
-    if (document.activeElement.id === 'lastNameInput') doLookup();
-    else if (document.activeElement.id === 'confirmInput') doConfirm();
+    div.textContent = str;
+    return div.innerHTML;
   }
-});
 
-// Boot
-init();
+  init();
 </script>
 </body>
 </html>
