@@ -4,6 +4,7 @@ const session = require('express-session');
 const PgSession = require('connect-pg-simple')(session);
 const path = require('path');
 const pool = require('./lib/db');
+const { customDomainMiddleware } = require('./lib/custom-domain');
 
 const app = express();
 
@@ -38,6 +39,11 @@ app.use(session({
 if (process.env.NODE_ENV === 'production') {
   app.set('trust proxy', 1);
 }
+
+// ============================================
+// Custom domain middleware
+// ============================================
+app.use(customDomainMiddleware);
 
 // ============================================
 // Root route - Landing page or dashboard redirect
