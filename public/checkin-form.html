@@ -765,7 +765,7 @@ async function init() {
 
     // Initialize payment module if deposits are enabled
     if (window.CheckinPayment) {
-      CheckinPayment.init(propertyConfig);
+      CheckinPayment.init(propertyConfig.depositInfo || propertyConfig);
     }
 
     // Build dynamic form fields
