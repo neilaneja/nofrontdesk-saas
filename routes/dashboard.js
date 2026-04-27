@@ -2,6 +2,7 @@ const express = require('express');
 const db = require('../lib/db');
 const { requireLogin } = require('../lib/auth');
 const { getPMSList } = require('../lib/pms');
+const { verifyAndSaveDomain, removeDomain, CNAME_TARGET } = require('../lib/custom-domain');
 
 const router = express.Router();
 
@@ -316,8 +317,20 @@ router.get('/dashboard/embed/:id', async (req, res) => {
       <p style="font-size:14px;color:#718096;margin-bottom:12px;">Your check-in page is also available at:</p>
       <div class="code-block">
         <code>https://${esc(p.custom_domain)}</code>
+              <div style="margin-top:12px;display:flex;gap:8px;">
+                <form method="POST" action="/dashboard/properties/${p.id}/domain/verify" style="margin:0;">
+                  <button type="submit" class="btn btn-sm" style="font-size:13px;padding:6px 14px;">Verify Now</button>
+                </form>
+                <form method="POST" action="/dashboard/properties/${p.id}/domain/remove" style="margin:0;">
+                  <button type="submit" class="btn btn-sm" style="font-size:13px;padding:6px 14px;background:#e53e3e;color:#fff;" onclick="return confirm('Remove custom domain?')">Remove</button>
+                </form>
+              </div>
+              <div style="margin-top:12px;padding:12px;background:#f7fafc;border-radius:8px;font-size:13px;color:#4a5568;">
+                <strong>DNS Setup:</strong> Create a CNAME record pointing<br>
+                <code style="background:#edf2f7;padding:2px 6px;border-radius:4px;">${esc(p.custom_domain)}</code> &rarr; <code style="background:#edf2f7;padding:2px 6px;border-radius:4px;">${CNAME_TARGET}</code>
+              </div>
         <span style="font-size:12px;color:${p.custom_domain_verified ? '#38a169' : '#e94560'};margin-left:12px;">
-          ${p.custom_domain_verified ? 'Verified' : 'Pending verification'}
+          ${p.custom_domain_verified ? '&#10003; Verified' : '&#9888; Pending verification'}
         </span>
       </div>
     </div>` : `
@@ -360,20 +373,45 @@ router.post('/dashboard/properties/:id/domain', async (req, res) => {
   const accountId = req.session.accountId;
 
   if (!customDomain || !customDomain.trim()) {
-    return res.redirect(`/dashboard/embed/${req.params.id}`);
+    return res.redirect('/dashboard/properties/' + req.params.id + '/edit');
   }
 
-  const domain = customDomain.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
-
   try {
-    await db.query(
-      'UPDATE properties SET custom_domain = $1, custom_domain_verified = false, updated_at = NOW() WHERE id = $2 AND account_id = $3',
-      [domain, req.params.id, accountId]
-    );
-    res.redirect(`/dashboard/embed/${req.params.id}`);
+    const result = await verifyAndSaveDomain(req.params.id, customDomain);
+    req.session.domainResult = result;
+    res.redirect('/dashboard/properties/' + req.params.id + '/edit');
   } catch (err) {
     console.error('Domain setup error:', err);
-    res.redirect(`/dashboard/embed/${req.params.id}`);
+    res.redirect('/dashboard/properties/' + req.params.id + '/edit');
+  }
+});
+
+// POST /dashboard/properties/:id/domain/verify - Re-verify custom domain
+router.post('/dashboard/properties/:id/domain/verify', async (req, res) => {
+  const accountId = req.session.accountId;
+  try {
+    const prop = await db.query('SELECT custom_domain FROM properties WHERE id = $1 AND account_id = $2', [req.params.id, accountId]);
+    if (prop.rows.length === 0 || !prop.rows[0].custom_domain) {
+      return res.redirect('/dashboard/properties/' + req.params.id + '/edit');
+    }
+    const result = await verifyAndSaveDomain(req.params.id, prop.rows[0].custom_domain);
+    req.session.domainResult = result;
+    res.redirect('/dashboard/properties/' + req.params.id + '/edit');
+  } catch (err) {
+    console.error('Domain verify error:', err);
+    res.redirect('/dashboard/properties/' + req.params.id + '/edit');
+  }
+});
+
+// POST /dashboard/properties/:id/domain/remove - Remove custom domain
+router.post('/dashboard/properties/:id/domain/remove', async (req, res) => {
+  const accountId = req.session.accountId;
+  try {
+    await db.query('UPDATE properties SET custom_domain = NULL, custom_domain_verified = false WHERE id = $1 AND account_id = $2', [req.params.id, accountId]);
+    res.redirect('/dashboard/properties/' + req.params.id + '/edit');
+  } catch (err) {
+    console.error('Domain remove error:', err);
+    res.redirect('/dashboard/properties/' + req.params.id + '/edit');
   }
 });
 
