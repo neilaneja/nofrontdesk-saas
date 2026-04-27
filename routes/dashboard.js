@@ -44,7 +44,7 @@ router.get('/dashboard', async (req, res) => {
       COUNT(CASE WHEN status IN ('released','refunded') THEN 1 END) as released,
       SUM(CASE WHEN status IN ('held','succeeded','captured','paid') THEN amount_cents ELSE 0 END) as total_amount_cents
       FROM guest_payments WHERE account_id = $1
-      GROUP BY property_id`, [accountId]),
+      GROUP BY property_id`, [accountId]).catch(function() { return { rows: [] }; }),
   ]);
 
   const account = accountRes.rows[0];
