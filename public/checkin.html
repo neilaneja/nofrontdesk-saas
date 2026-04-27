@@ -377,7 +377,7 @@ async function doLookup() {
       const res = await fetch('/api/lookup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ lastName, accountSlug, propertySlug }),,
+      body: JSON.stringify({ lastName, accountSlug, propertySlug }),
         signal: controller.signal,
       });
       clearTimeout(timeoutId)
