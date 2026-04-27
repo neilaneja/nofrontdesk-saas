@@ -616,14 +616,19 @@
   }
 
   function showResults(results, query) {
+    if (results.length === 0) {
+      // Stay on search screen — show error inline so user can immediately retry
+      searchError.textContent = 'No reservations found for "' + query + '". Check the spelling or try another name.';
+      searchError.classList.remove('hidden');
+      lastNameInput.select();
+      setTimeout(() => lastNameInput.focus(), 50);
+      return;
+    }
+
     searchScreen.classList.add('hidden');
     resultsScreen.classList.remove('hidden');
 
-    if (results.length === 0) {
-      resultsTitle.textContent = 'No reservations';
-      resultsSubtitle.innerHTML = 'Nothing matches "<strong>' + escapeHtml(query) + '</strong>". Check the spelling or try another name.';
-      resultCards.innerHTML = '<div class="no-results"><p>Double-check the last name on your reservation and try again.</p></div>';
-    } else if (results.length === 1) {
+    if (results.length === 1) {
       resultsTitle.textContent = 'We found you';
       resultsSubtitle.textContent = 'Confirm the details below to continue.';
       renderCards(results);
@@ -699,7 +704,11 @@
       }
 
       const data = await resp.json();
-      const results = data.results || data.reservations || [];
+      let results = data.results || data.reservations || [];
+      // Handle single-object response (e.g. { reservation: {...} })
+      if (!results.length && data.reservation) {
+        results = [data.reservation];
+      }
       showResults(results, lastName);
 
     } catch (err) {
