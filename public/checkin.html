@@ -372,11 +372,15 @@ async function doLookup() {
   btn.innerHTML = '<span class="spinner"></span> Searching...';
 
   try {
-    const res = await fetch('/api/lookup', {
+    const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 20000);
+      const res = await fetch('/api/lookup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ lastName, accountSlug, propertySlug }),
-    });
+      body: JSON.stringify({ lastName, accountSlug, propertySlug }),,
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId)
 
     if (!res.ok) {
       if (res.status >= 500) throw new Error('Server error');
@@ -417,7 +421,7 @@ async function doLookup() {
 
   } catch (err) {
     console.error('Lookup error:', err);
-    showSystemError();
+    showError('Search timed out or failed. Please try again.');
   } finally {
     btn.disabled = false;
     btn.innerHTML = 'Find My Reservation';
