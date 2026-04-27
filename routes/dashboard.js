@@ -336,7 +336,7 @@ router.get('/dashboard/embed/:id', async (req, res) => {
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
         <h3 style="margin:0;">Custom Domain</h3>
         <span style="font-size:12px;font-weight:600;padding:4px 10px;border-radius:12px;white-space:nowrap;background:${p.custom_domain_verified ? '#c6f6d5' : '#fed7d7'};color:${p.custom_domain_verified ? '#22543d' : '#9b2c2c'};">
-          ${p.custom_domain_verified ? 'â Verified' : 'â  Pending'}
+          ${p.custom_domain_verified ? 'Ã¢ÂÂ Verified' : 'Ã¢ÂÂ  Pending'}
         </span>
       </div>
       <p style="font-size:14px;color:#718096;margin-bottom:12px;">Your check-in page is also available at:</p>
@@ -354,7 +354,7 @@ router.get('/dashboard/embed/:id', async (req, res) => {
       </div>
       ${p.custom_domain === CNAME_TARGET ? `<div style="margin-top:12px;padding:12px;background:#f0fff4;border-radius:8px;font-size:13px;color:#276749;"><strong>\u2713 NoFrontDesk subdomain</strong> \u2014 no additional DNS setup needed.</div>` : `<div style="margin-top:12px;padding:12px;background:#f7fafc;border-radius:8px;font-size:13px;color:#4a5568;">
         <strong>DNS Setup:</strong> Create a CNAME record pointing<br>
-        <code style="background:#edf2f7;padding:2px 6px;border-radius:4px;">${esc(p.custom_domain)}</code> â <code style="background:#edf2f7;padding:2px 6px;border-radius:4px;">${CNAME_TARGET}</code>
+        <code style="background:#edf2f7;padding:2px 6px;border-radius:4px;">${esc(p.custom_domain)}</code> Ã¢ÂÂ <code style="background:#edf2f7;padding:2px 6px;border-radius:4px;">${CNAME_TARGET}</code>
       </div>`}
     </div>` : `
     <div class="form-card" style="margin-top:16px;">
@@ -722,7 +722,7 @@ function propertyForm(title, action, data, error = '', pmsType = 'guesty', hasSt
   return `
     <h2>${title}</h2>
     ${error ? `<div class="error-msg">${error}</div>` : ''}
-    <form method="POST" action="${action}" class="form-card">
+    
     ${data.propertyId ? `
     <div style="border-bottom:2px solid #e2e8f0;margin-bottom:24px;padding-bottom:24px;">
       <h3 style="font-size:17px;margin-bottom:16px;color:#1a1a2e;">Property Logo</h3>
@@ -745,6 +745,7 @@ function propertyForm(title, action, data, error = '', pmsType = 'guesty', hasSt
       <div class="hint" style="margin-top:4px;">PNG, JPG, SVG, or WebP. Max 5MB.</div>
     </div>
     ` : ''}
+    <form method="POST" action="${action}" class="form-card">
       <div class="form-group">
         <label>Property Name</label>
         <input type="text" name="name" placeholder="e.g. Sunset Beach Villa" value="${esc(data.name || '')}" required>
