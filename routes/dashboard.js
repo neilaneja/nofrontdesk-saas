@@ -3,6 +3,26 @@ const db = require('../lib/db');
 const { requireLogin } = require('../lib/auth');
 const { getPMSList } = require('../lib/pms');
 const { verifyAndSaveDomain, removeDomain, CNAME_TARGET } = require('../lib/custom-domain');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+// Logo upload config
+const logoStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = path.join(__dirname, '..', 'public', 'uploads', 'logos');
+    fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname) || '.png';
+    cb(null, `property-${req.params.id}-${Date.now()}${ext}`);
+  }
+});
+const logoUpload = multer({ storage: logoStorage, limits: { fileSize: 5 * 1024 * 1024 }, fileFilter: (req, file, cb) => {
+  const allowed = /jpeg|jpg|png|gif|svg|webp/;
+  cb(null, allowed.test(path.extname(file.originalname).toLowerCase()));
+}});
 
 const router = express.Router();
 
@@ -313,25 +333,28 @@ router.get('/dashboard/embed/:id', async (req, res) => {
 
     ${p.custom_domain ? `
     <div class="form-card" style="margin-top:16px;">
-      <h3 style="margin-bottom:12px;">Custom Domain</h3>
-      <p style="font-size:14px;color:#718096;margin-bottom:12px;">Your check-in page is also available at:</p>
-      <div class="code-block">
-        <code>https://${esc(p.custom_domain)}</code>
-              <div style="margin-top:12px;display:flex;gap:8px;">
-                <form method="POST" action="/dashboard/properties/${p.id}/domain/verify" style="margin:0;">
-                  <button type="submit" class="btn btn-sm" style="font-size:13px;padding:6px 14px;">Verify Now</button>
-                </form>
-                <form method="POST" action="/dashboard/properties/${p.id}/domain/remove" style="margin:0;">
-                  <button type="submit" class="btn btn-sm" style="font-size:13px;padding:6px 14px;background:#e53e3e;color:#fff;" onclick="return confirm('Remove custom domain?')">Remove</button>
-                </form>
-              </div>
-              <div style="margin-top:12px;padding:12px;background:#f7fafc;border-radius:8px;font-size:13px;color:#4a5568;">
-                <strong>DNS Setup:</strong> Create a CNAME record pointing<br>
-                <code style="background:#edf2f7;padding:2px 6px;border-radius:4px;">${esc(p.custom_domain)}</code> &rarr; <code style="background:#edf2f7;padding:2px 6px;border-radius:4px;">${CNAME_TARGET}</code>
-              </div>
-        <span style="font-size:12px;color:${p.custom_domain_verified ? '#38a169' : '#e94560'};margin-left:12px;">
-          ${p.custom_domain_verified ? '&#10003; Verified' : '&#9888; Pending verification'}
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <h3 style="margin:0;">Custom Domain</h3>
+        <span style="font-size:12px;font-weight:600;padding:4px 10px;border-radius:12px;white-space:nowrap;background:${p.custom_domain_verified ? '#c6f6d5' : '#fed7d7'};color:${p.custom_domain_verified ? '#22543d' : '#9b2c2c'};">
+          ${p.custom_domain_verified ? '✓ Verified' : '⚠ Pending'}
         </span>
+      </div>
+      <p style="font-size:14px;color:#718096;margin-bottom:12px;">Your check-in page is also available at:</p>
+      <div class="code-block" style="word-break:normal;overflow-wrap:anywhere;">
+        <code style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">https://${esc(p.custom_domain)}</code>
+        <button class="copy-btn" onclick="copyCode(this, 'https://${esc(p.custom_domain)}')">Copy</button>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:8px;align-items:center;">
+        <form method="POST" action="/dashboard/properties/${p.id}/domain/verify" style="margin:0;">
+          <button type="submit" class="btn btn-sm" style="font-size:13px;padding:6px 14px;">Verify Now</button>
+        </form>
+        <form method="POST" action="/dashboard/properties/${p.id}/domain/remove" style="margin:0;">
+          <button type="submit" class="btn btn-sm" style="font-size:13px;padding:6px 14px;background:#e53e3e;color:#fff;" onclick="return confirm('Remove custom domain?')">Remove</button>
+        </form>
+      </div>
+      <div style="margin-top:12px;padding:12px;background:#f7fafc;border-radius:8px;font-size:13px;color:#4a5568;">
+        <strong>DNS Setup:</strong> Create a CNAME record pointing<br>
+        <code style="background:#edf2f7;padding:2px 6px;border-radius:4px;">${esc(p.custom_domain)}</code> → <code style="background:#edf2f7;padding:2px 6px;border-radius:4px;">${CNAME_TARGET}</code>
       </div>
     </div>` : `
     <div class="form-card" style="margin-top:16px;">
@@ -349,7 +372,7 @@ router.get('/dashboard/embed/:id', async (req, res) => {
 
     <a href="/dashboard" class="btn btn-outline" style="margin-top:20px;">Back to Dashboard</a>
     <style>
-      .code-block { background: #1a1a2e; color: #e2e8f0; padding: 16px; border-radius: 8px; font-family: 'SF Mono', Monaco, 'Courier New', monospace; font-size: 13px; line-height: 1.6; position: relative; word-break: break-all; display: flex; align-items: flex-start; gap: 12px; }
+      .code-block { background: #1a1a2e; color: #e2e8f0; padding: 16px; border-radius: 8px; font-family: 'SF Mono', Monaco, 'Courier New', monospace; font-size: 13px; line-height: 1.6; position: relative; overflow-wrap: anywhere; display: flex; align-items: flex-start; gap: 12px; }
       .code-block code { flex: 1; white-space: pre-wrap; }
       .copy-btn { background: #4a5568; color: white; border: none; padding: 6px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; white-space: nowrap; }
       .copy-btn:hover { background: #718096; }
@@ -506,6 +529,8 @@ router.get('/dashboard/properties/:id/edit', async (req, res) => {
       depositAmount: p.deposit_amount_cents ? (p.deposit_amount_cents / 100).toFixed(2) : '',
       depositType: p.deposit_type || 'charge',
       paymentDescription: p.payment_description || 'Security Deposit',
+      logoUrl: p.logo_url,
+      propertyId: p.id,
     }, '', pmsType, hasStripe)
   ));
 });
@@ -549,6 +574,42 @@ router.post('/dashboard/properties/:id/edit', async (req, res) => {
 });
 
 // ---------------------------------------------
+// POST /dashboard/properties/:id/logo - Upload property logo
+// ---------------------------------------------
+router.post('/dashboard/properties/:id/logo', logoUpload.single('logo'), async (req, res) => {
+  const accountId = req.session.accountId;
+  try {
+    if (!req.file) {
+      return res.redirect('/dashboard/properties/' + req.params.id + '/edit');
+    }
+    const logoUrl = '/uploads/logos/' + req.file.filename;
+    await db.query(
+      'UPDATE properties SET logo_url = $1, updated_at = NOW() WHERE id = $2 AND account_id = $3',
+      [logoUrl, req.params.id, accountId]
+    );
+    res.redirect('/dashboard/properties/' + req.params.id + '/edit');
+  } catch (err) {
+    console.error('Logo upload error:', err);
+    res.redirect('/dashboard/properties/' + req.params.id + '/edit');
+  }
+});
+
+// POST /dashboard/properties/:id/logo/remove - Remove property logo
+// ---------------------------------------------
+router.post('/dashboard/properties/:id/logo/remove', async (req, res) => {
+  const accountId = req.session.accountId;
+  try {
+    await db.query(
+      'UPDATE properties SET logo_url = NULL, updated_at = NOW() WHERE id = $1 AND account_id = $2',
+      [req.params.id, accountId]
+    );
+    res.redirect('/dashboard/properties/' + req.params.id + '/edit');
+  } catch (err) {
+    console.error('Logo remove error:', err);
+    res.redirect('/dashboard/properties/' + req.params.id + '/edit');
+  }
+});
+
 // GET /dashboard/signage/:id - QR code sign
 // ---------------------------------------------
 router.get('/dashboard/signage/:id', async (req, res) => {
@@ -662,6 +723,28 @@ function propertyForm(title, action, data, error = '', pmsType = 'guesty', hasSt
     <h2>${title}</h2>
     ${error ? `<div class="error-msg">${error}</div>` : ''}
     <form method="POST" action="${action}" class="form-card">
+    ${data.propertyId ? `
+    <div style="border-bottom:2px solid #e2e8f0;margin-bottom:24px;padding-bottom:24px;">
+      <h3 style="font-size:17px;margin-bottom:16px;color:#1a1a2e;">Property Logo</h3>
+      <p style="font-size:14px;color:#718096;margin-bottom:12px;">This logo replaces the monogram on your check-in page.</p>
+      ${data.logoUrl ? `
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:12px;">
+        <img src="${data.logoUrl}" alt="Logo" style="max-height:64px;max-width:200px;border-radius:8px;border:2px solid #e2e8f0;padding:4px;">
+        <form method="POST" action="/dashboard/properties/${data.propertyId}/logo/remove" style="margin:0;">
+          <button type="submit" class="btn btn-sm" style="font-size:13px;padding:6px 14px;background:#e53e3e;color:#fff;" onclick="return confirm('Remove logo?')">Remove</button>
+        </form>
+      </div>
+      ` : ''}
+      <form method="POST" action="/dashboard/properties/${data.propertyId}/logo" enctype="multipart/form-data" style="display:flex;gap:12px;align-items:flex-end;">
+        <div class="form-group" style="flex:1;margin-bottom:0;">
+          <label>Upload Logo</label>
+          <input type="file" name="logo" accept="image/*" style="padding:8px;">
+        </div>
+        <button type="submit" class="btn btn-sm" style="font-size:13px;padding:8px 16px;">Upload</button>
+      </form>
+      <div class="hint" style="margin-top:4px;">PNG, JPG, SVG, or WebP. Max 5MB.</div>
+    </div>
+    ` : ''}
       <div class="form-group">
         <label>Property Name</label>
         <input type="text" name="name" placeholder="e.g. Sunset Beach Villa" value="${esc(data.name || '')}" required>
