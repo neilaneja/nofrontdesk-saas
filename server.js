@@ -91,4 +91,10 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`NoFrontDesk running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+
+  // Migrate custom domain to nofrontdesk.com subdomain (idempotent)
+  pool.query(
+    "UPDATE properties SET custom_domain = 'checkin.nofrontdesk.com' WHERE custom_domain = 'checkin.thewestendflats.com'"
+  ).then(r => { if (r.rowCount > 0) console.log('Migrated custom domain to checkin.nofrontdesk.com'); })
+   .catch(err => console.log('Domain migration note:', err.message));
 });
