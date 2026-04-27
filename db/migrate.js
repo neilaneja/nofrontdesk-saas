@@ -14,7 +14,8 @@ async function migrate() {
     'schema.sql',
     'migration-002-checkin-form.sql',
     'migration-003-payments.sql',
-    'migration-multi-pms.sql'
+    'migration-multi-pms.sql',
+        'migration-004-deposit-type.sql'
   ];
 
   try {
