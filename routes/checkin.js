@@ -111,6 +111,54 @@ router.get('/api/property/:accountSlug/:propertySlug', async (req, res) => {
 });
 
 // ---------------------------------------------
+// GET /api/property-by-host - Resolve property by custom domain hostname
+// Used by checkin.html when served on a custom domain (no slugs in URL)
+router.get('/api/property-by-host', async (req, res) => {
+  const host = (req.hostname || req.headers.host || '').split(':')[0].toLowerCase();
+
+  const result = await db.query(
+    `SELECT p.name, p.welcome_message, p.require_confirmation_code,
+            p.logo_url, p.brand_color, p.accent_color, p.fallback_phone,
+            p.checkin_form_mode, p.custom_checkin_url, p.checkin_form_config,
+            p.deposit_enabled, p.deposit_amount_cents, p.deposit_type, p.payment_description,
+            p.slug as property_slug, a.slug as account_slug,
+            a.stripe_connect_id, a.stripe_connect_onboarded
+     FROM properties p
+     JOIN accounts a ON p.account_id = a.id
+     WHERE p.custom_domain = $1 AND p.custom_domain_verified = true`,
+    [host]
+  );
+
+  if (result.rows.length === 0) {
+    return res.status(404).json({ error: 'Property not found for this domain' });
+  }
+
+  const p = result.rows[0];
+  const depositInfo = (p.deposit_enabled && p.stripe_connect_onboarded) ? {
+    depositEnabled: true,
+    depositAmountCents: p.deposit_amount_cents,
+    depositType: p.deposit_type || 'charge',
+    paymentDescription: p.payment_description || 'Security Deposit',
+    stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY || '',
+  } : { depositEnabled: false };
+
+  res.json({
+    accountSlug: p.account_slug,
+    propertySlug: p.property_slug,
+    name: p.name,
+    requireConfirmationCode: p.require_confirmation_code,
+    welcomeMessage: p.welcome_message,
+    logoUrl: p.logo_url,
+    brandColor: p.brand_color,
+    accentColor: p.accent_color,
+    fallbackPhone: p.fallback_phone,
+    checkinFormMode: p.checkin_form_mode || 'auto',
+    customCheckinUrl: p.custom_checkin_url || '',
+    checkinFormConfig: p.checkin_form_config || null,
+    ...depositInfo,
+  });
+});
+
 // POST /api/checkin/create-payment-intent - Create a payment intent for check-in deposit
 // Called by the check-in form when deposit is required
 // ---------------------------------------------
