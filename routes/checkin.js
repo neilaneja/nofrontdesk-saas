@@ -1,10 +1,14 @@
 const express = require('express');
 const path = require('path');
 const multer = require('multer');
+const NodeCache = require('node-cache');
 const db = require('../lib/db');
 const { createAdapter } = require('../lib/pms');
 
 const router = express.Router();
+
+// Cache property + credential lookups (5-min TTL) to avoid DB hits on every search
+const propertyCache = new NodeCache({ stdTTL: 300 });
 
 // ---------------------------------------------
 // File upload configuration (for ID photos, selfies)
@@ -68,10 +72,10 @@ router.get('/api/property/:accountSlug/:propertySlug', async (req, res) => {
 
   const result = await db.query(
     `SELECT p.name, p.welcome_message, p.require_confirmation_code,
-            p.logo_url, p.brand_color, p.accent_color, p.fallback_phone,
-            p.checkin_form_mode, p.custom_checkin_url, p.checkin_form_config,
-            p.deposit_enabled, p.deposit_amount_cents, p.deposit_type, p.payment_description,
-            a.stripe_connect_id, a.stripe_connect_onboarded
+     p.logo_url, p.brand_color, p.accent_color, p.fallback_phone,
+     p.checkin_form_mode, p.custom_checkin_url, p.checkin_form_config,
+     p.deposit_enabled, p.deposit_amount_cents, p.deposit_type, p.payment_description,
+     a.stripe_connect_id, a.stripe_connect_onboarded
      FROM properties p
      JOIN accounts a ON p.account_id = a.id
      WHERE a.slug = $1 AND p.slug = $2`,
@@ -118,11 +122,11 @@ router.get('/api/property-by-host', async (req, res) => {
 
   const result = await db.query(
     `SELECT p.name, p.welcome_message, p.require_confirmation_code,
-            p.logo_url, p.brand_color, p.accent_color, p.fallback_phone,
-            p.checkin_form_mode, p.custom_checkin_url, p.checkin_form_config,
-            p.deposit_enabled, p.deposit_amount_cents, p.deposit_type, p.payment_description,
-            p.slug as property_slug, a.slug as account_slug,
-            a.stripe_connect_id, a.stripe_connect_onboarded
+     p.logo_url, p.brand_color, p.accent_color, p.fallback_phone,
+     p.checkin_form_mode, p.custom_checkin_url, p.checkin_form_config,
+     p.deposit_enabled, p.deposit_amount_cents, p.deposit_type, p.payment_description,
+     p.slug as property_slug, a.slug as account_slug,
+     a.stripe_connect_id, a.stripe_connect_onboarded
      FROM properties p
      JOIN accounts a ON p.account_id = a.id
      WHERE p.custom_domain = $1 AND p.custom_domain_verified = true`,
@@ -193,12 +197,10 @@ router.post('/api/checkin/create-payment-intent', express.json(), async (req, re
     const amountCents = property.deposit_amount_cents || 5000; // default $50
 
     if (property.deposit_type === 'hold') {
-      // Create a SetupIntent for pre-authorization hold
-      // We'll create the actual hold after the card is confirmed
       const paymentIntent = await stripe.paymentIntents.create({
         amount: amountCents,
         currency: 'usd',
-        capture_method: 'manual', // This creates a hold, not a charge
+        capture_method: 'manual',
         description: property.payment_description || 'Security Deposit Hold',
         metadata: {
           property_id: property.id.toString(),
@@ -218,7 +220,6 @@ router.post('/api/checkin/create-payment-intent', express.json(), async (req, re
         amount: amountCents,
       });
     } else {
-      // Create a PaymentIntent for immediate charge
       const paymentIntent = await stripe.paymentIntents.create({
         amount: amountCents,
         currency: 'usd',
@@ -273,7 +274,6 @@ router.post('/api/checkin/confirm-deposit', express.json(), async (req, res) => 
 
     const property = propResult.rows[0];
 
-    // Verify the payment intent with Stripe
     const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId, {
       stripeAccount: property.stripe_connect_id,
@@ -282,7 +282,6 @@ router.post('/api/checkin/confirm-deposit', express.json(), async (req, res) => 
     const type = paymentIntent.capture_method === 'manual' ? 'hold' : 'charge';
     const status = type === 'hold' ? 'held' : 'paid';
 
-    // Record in guest_payments table
     await db.query(
       `INSERT INTO guest_payments (account_id, property_id, guest_name, guest_email, reservation_id, type, status, amount_cents, stripe_payment_intent_id, description)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
@@ -300,6 +299,7 @@ router.post('/api/checkin/confirm-deposit', express.json(), async (req, res) => 
 
 // ---------------------------------------------
 // POST /api/lookup - Reservation lookup (public)
+// Uses cached property+credentials to avoid DB hits on every search
 // ---------------------------------------------
 router.post('/api/lookup', async (req, res) => {
   const { lastName, accountSlug, propertySlug, confirmationCode } = req.body;
@@ -309,35 +309,40 @@ router.post('/api/lookup', async (req, res) => {
   }
 
   try {
-    const propResult = await db.query(
-      `SELECT p.*, a.id as account_id, a.slug as account_slug
-       FROM properties p
-       JOIN accounts a ON p.account_id = a.id
-       WHERE a.slug = $1 AND p.slug = $2`,
-      [accountSlug, propertySlug]
-    );
+    // Check property cache first (5-min TTL)
+    const propCacheKey = `prop_${accountSlug}_${propertySlug}`;
+    let propData = propertyCache.get(propCacheKey);
 
-    if (propResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Property not found.' });
+    if (!propData) {
+      const propResult = await db.query(
+        `SELECT p.*, a.id as account_id, a.slug as account_slug,
+                c.pms_type, c.credentials
+         FROM properties p
+         JOIN accounts a ON p.account_id = a.id
+         LEFT JOIN api_credentials c ON c.account_id = a.id
+         WHERE a.slug = $1 AND p.slug = $2`,
+        [accountSlug, propertySlug]
+      );
+
+      if (propResult.rows.length === 0) {
+        return res.status(404).json({ error: 'Property not found.' });
+      }
+
+      propData = propResult.rows[0];
+      propertyCache.set(propCacheKey, propData);
     }
 
-    const property = propResult.rows[0];
+    const property = propData;
 
-    const credResult = await db.query(
-      `SELECT pms_type, credentials FROM api_credentials WHERE account_id = $1`,
-      [property.account_id]
-    );
-
-    if (credResult.rows.length === 0) {
+    if (!property.pms_type || !property.credentials) {
       return res.status(500).json({
         error: 'system_error',
         message: 'Check-in system is not configured. Please contact the property manager.',
       });
     }
 
-    const { pms_type, credentials } = credResult.rows[0];
-    const pmsCredentials = { ...credentials, accountId: property.account_id };
-    const adapter = createAdapter(pms_type, pmsCredentials);
+    const pmsCredentials = { ...property.credentials, accountId: property.account_id };
+    const adapter = createAdapter(property.pms_type, pmsCredentials);
 
     let results = await adapter.searchReservations(lastName);
 
@@ -385,7 +390,7 @@ router.post('/api/lookup', async (req, res) => {
 
     const propertyConfig = {
       guestyGuestAppName: property.guesty_guest_app_name || '',
-      pmsType: pms_type,
+      pmsType: property.pms_type,
       checkinFormMode: property.checkin_form_mode || 'auto',
       customCheckinUrl: property.custom_checkin_url || '',
     };
