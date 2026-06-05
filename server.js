@@ -92,9 +92,9 @@ app.listen(PORT, () => {
   console.log(`NoFrontDesk running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 
-  // Migrate custom domain to nofrontdesk.com subdomain (idempotent)
+  // Restore custom domain for The West End Flats (reverses old migration that was overwriting it)
   pool.query(
-    "UPDATE properties SET custom_domain = 'checkin.nofrontdesk.com' WHERE custom_domain = 'checkin.thewestendflats.com'"
-  ).then(r => { if (r.rowCount > 0) console.log('Migrated custom domain to checkin.nofrontdesk.com'); })
-   .catch(err => console.log('Domain migration note:', err.message));
+    "UPDATE properties SET custom_domain = 'checkin.thewestendflats.com', custom_domain_verified = true WHERE custom_domain = 'checkin.nofrontdesk.com'"
+  ).then(r => { if (r.rowCount > 0) console.log('Restored custom domain to checkin.thewestendflats.com'); })
+   .catch(err => console.log('Domain restore note:', err.message));
 });
